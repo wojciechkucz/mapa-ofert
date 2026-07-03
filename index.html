@@ -1,0 +1,1226 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Travelist · Mapa ofert — narzędzie Customer Service</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23E4573D' d='M16 2a10.5 10.5 0 0 0-10.5 10.5C5.5 20 16 30 16 30s10.5-10 10.5-17.5A10.5 10.5 0 0 0 16 2zm0 14.6a4.1 4.1 0 1 1 0-8.2 4.1 4.1 0 0 1 0 8.2z'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,560;0,9..144,640;1,9..144,460&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
+<style>
+:root{
+  --ink:#1e2534;         /* deep slate */
+  --ink-soft:#4c556a;
+  --ink-faint:#8b93a5;
+  --cream:#f8f3ea;       /* page background */
+  --paper:#fffdf8;       /* cards */
+  --line:#e6ddce;
+  --line-strong:#d5c9b4;
+  --coral:#e4573d;       /* Travelist accent */
+  --coral-deep:#c33f27;
+  --coral-tint:#fceee9;
+  --green:#1e7f5c;
+  --green-tint:#e6f3ec;
+  --gold:#c98a1b;
+  --shadow-sm:0 1px 2px rgba(30,37,52,.06),0 2px 8px rgba(30,37,52,.05);
+  --shadow-md:0 2px 6px rgba(30,37,52,.08),0 10px 28px rgba(30,37,52,.10);
+  --shadow-lg:0 6px 16px rgba(30,37,52,.12),0 24px 56px rgba(30,37,52,.16);
+  --r-sm:8px; --r-md:12px; --r-lg:16px;
+  --panel-w:432px;
+  --font-body:"Instrument Sans",-apple-system,"Segoe UI",sans-serif;
+  --font-display:"Fraunces",Georgia,serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;font-family:var(--font-body);color:var(--ink);background:var(--cream);
+  font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit;cursor:pointer}
+input,select{font-family:inherit;font-size:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--coral);outline-offset:2px;border-radius:4px}
+::selection{background:var(--coral);color:#fff}
+
+/* ---------- layout ---------- */
+#app{display:flex;flex-direction:column;height:100dvh}
+main{display:flex;flex:1;min-height:0;position:relative}
+aside{
+  width:var(--panel-w);min-width:var(--panel-w);display:flex;flex-direction:column;min-height:0;
+  background:var(--cream);border-right:1px solid var(--line-strong);z-index:500;
+}
+#map{flex:1;min-width:0;background:#e9e4d8}
+
+/* ---------- topbar ---------- */
+.topbar{
+  display:flex;align-items:center;gap:14px;padding:10px 18px;
+  background:var(--ink);color:var(--cream);position:relative;z-index:600;
+}
+.brand{display:flex;align-items:baseline;gap:10px;min-width:0}
+.brand .logo{
+  font-family:var(--font-display);font-weight:640;font-style:italic;font-size:23px;letter-spacing:.2px;
+  color:var(--cream);white-space:nowrap;
+}
+.brand .logo .dot{color:var(--coral)}
+.brand .sub{
+  font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#aab2c4;
+  border:1px solid #3b4356;padding:3px 8px;border-radius:99px;white-space:nowrap;
+}
+.topbar .spacer{flex:1}
+.status-pill{
+  display:none;align-items:center;gap:8px;font-size:12.5px;color:#c9d0df;
+  background:#2a3245;border:1px solid #3b4356;border-radius:99px;padding:4px 12px;white-space:nowrap;
+}
+.status-pill.on{display:flex}
+.status-pill .spin{
+  width:12px;height:12px;border-radius:50%;border:2px solid #4c566d;border-top-color:var(--coral);
+  animation:spin .8s linear infinite;flex:none;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.tb-btn{
+  display:flex;align-items:center;gap:7px;background:transparent;color:#d8dde8;border:1px solid #3b4356;
+  border-radius:var(--r-sm);padding:7px 12px;font-size:13px;font-weight:600;transition:all .15s;white-space:nowrap;
+}
+.tb-btn:hover{background:#2a3245;color:#fff;border-color:#4c566d}
+.tb-btn.accent{background:var(--coral);border-color:var(--coral);color:#fff}
+.tb-btn.accent:hover{background:var(--coral-deep);border-color:var(--coral-deep)}
+.tb-btn svg{width:15px;height:15px;flex:none}
+
+/* ---------- panel head ---------- */
+.panel-head{padding:16px 18px 0;flex:none}
+.searchrow{position:relative;margin-bottom:10px}
+.searchrow svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--ink-faint);pointer-events:none}
+#q{
+  width:100%;padding:11px 38px 11px 38px;border:1px solid var(--line-strong);border-radius:var(--r-md);
+  background:var(--paper);font-size:14px;box-shadow:var(--shadow-sm);transition:border-color .15s;
+}
+#q:focus{border-color:var(--coral);outline:none;box-shadow:0 0 0 3px var(--coral-tint)}
+#q::placeholder{color:var(--ink-faint)}
+#qClear{
+  position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:transparent;
+  width:28px;height:28px;border-radius:50%;color:var(--ink-faint);display:none;align-items:center;justify-content:center;
+}
+#qClear:hover{background:var(--coral-tint);color:var(--coral)}
+#qClear.on{display:flex}
+.controlrow{display:flex;align-items:center;gap:10px;padding-bottom:12px}
+.count{font-size:13px;color:var(--ink-soft)}
+.count b{font-family:var(--font-display);font-weight:640;font-size:17px;color:var(--ink)}
+.controlrow .grow{flex:1}
+.sortwrap{position:relative}
+#sort{
+  appearance:none;border:1px solid var(--line-strong);background:var(--paper);border-radius:var(--r-sm);
+  padding:7px 30px 7px 11px;font-size:12.5px;font-weight:600;color:var(--ink-soft);box-shadow:var(--shadow-sm);
+}
+.sortwrap::after{
+  content:"";position:absolute;right:11px;top:50%;width:7px;height:7px;pointer-events:none;
+  border-right:1.6px solid var(--ink-faint);border-bottom:1.6px solid var(--ink-faint);
+  transform:translateY(-70%) rotate(45deg);
+}
+#filterToggle{
+  display:flex;align-items:center;gap:7px;border:1px solid var(--line-strong);background:var(--paper);
+  border-radius:var(--r-sm);padding:7px 11px;font-size:12.5px;font-weight:600;color:var(--ink-soft);
+  box-shadow:var(--shadow-sm);transition:all .15s;
+}
+#filterToggle svg{width:14px;height:14px}
+#filterToggle:hover{border-color:var(--coral);color:var(--coral)}
+#filterToggle .fbadge{
+  display:none;min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:var(--coral);color:#fff;
+  font-size:11px;font-weight:700;align-items:center;justify-content:center;
+}
+#filterToggle .fbadge.on{display:flex}
+
+/* ---------- filters ---------- */
+#filters{
+  flex:none;overflow-y:auto;max-height:46dvh;padding:2px 18px 6px;border-bottom:1px solid var(--line);
+  scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent;
+}
+#filters.hidden{display:none}
+.fgroup{padding:11px 0;border-top:1px dashed var(--line)}
+.fgroup:first-child{border-top:0}
+.flabel{
+  display:flex;align-items:center;justify-content:space-between;font-size:10.5px;font-weight:700;
+  letter-spacing:.13em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:9px;
+}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{
+  border:1px solid var(--line-strong);background:var(--paper);border-radius:99px;padding:6px 12px;
+  font-size:12.5px;font-weight:600;color:var(--ink-soft);transition:all .13s;display:flex;align-items:center;gap:6px;
+}
+.chip:hover{border-color:var(--coral);color:var(--coral)}
+.chip.on{background:var(--ink);border-color:var(--ink);color:var(--cream)}
+.chip .st{color:var(--gold);font-size:11px}
+.chip.on .st{color:#f0c869}
+.reset-link{
+  border:0;background:none;color:var(--coral);font-size:11px;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;padding:0;display:none;
+}
+.reset-link.on{display:inline}
+.reset-link:hover{text-decoration:underline}
+
+/* dual range slider */
+.range-wrap{position:relative;height:26px;margin:4px 2px 6px}
+.range-track{position:absolute;left:0;right:0;top:50%;height:4px;transform:translateY(-50%);background:var(--line);border-radius:99px}
+.range-fill{position:absolute;top:0;bottom:0;background:var(--coral);border-radius:99px}
+.range-wrap input[type=range]{
+  position:absolute;left:0;right:0;top:0;width:100%;height:26px;margin:0;background:none;
+  -webkit-appearance:none;appearance:none;pointer-events:none;
+}
+.range-wrap input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;pointer-events:auto;width:19px;height:19px;border-radius:50%;
+  background:var(--paper);border:2.5px solid var(--coral);box-shadow:var(--shadow-sm);cursor:grab;
+}
+.range-wrap input[type=range]::-moz-range-thumb{
+  pointer-events:auto;width:14px;height:14px;border-radius:50%;background:var(--paper);
+  border:2.5px solid var(--coral);box-shadow:var(--shadow-sm);cursor:grab;
+}
+.range-vals{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-soft);font-weight:600}
+.range-vals span b{color:var(--ink)}
+.switchrow{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;color:var(--ink-soft);padding:2px 0}
+.switch{position:relative;width:38px;height:22px;flex:none}
+.switch input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
+.switch .tr{
+  position:absolute;inset:0;background:var(--line-strong);border-radius:99px;transition:background .15s;
+}
+.switch .tr::after{
+  content:"";position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#fff;
+  box-shadow:var(--shadow-sm);transition:transform .15s;
+}
+.switch input:checked + .tr{background:var(--coral)}
+.switch input:checked + .tr::after{transform:translateX(16px)}
+.switch input:focus-visible + .tr{outline:2px solid var(--coral);outline-offset:2px}
+
+/* ---------- results list ---------- */
+#list{flex:1;overflow-y:auto;padding:12px 18px 24px;scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent}
+.card{
+  background:var(--paper);border:1px solid var(--line);border-radius:var(--r-lg);padding:15px 16px 13px;
+  margin-bottom:12px;box-shadow:var(--shadow-sm);transition:box-shadow .18s,border-color .18s,transform .18s;
+  position:relative;
+}
+.card:hover,.card.hot{border-color:var(--line-strong);box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.card.active{border-color:var(--coral);box-shadow:0 0 0 3px var(--coral-tint),var(--shadow-md)}
+.card.finished{opacity:.62}
+.card-top{display:flex;align-items:flex-start;gap:10px}
+.card h3{
+  margin:0;font-family:var(--font-display);font-weight:640;font-size:16.5px;line-height:1.28;flex:1;letter-spacing:.1px;
+}
+.badge-off{
+  flex:none;background:var(--coral);color:#fff;font-size:12px;font-weight:700;border-radius:7px;
+  padding:3px 8px;letter-spacing:.02em;
+}
+.badge-fin{flex:none;background:var(--ink-faint);color:#fff;font-size:11px;font-weight:700;border-radius:7px;padding:3px 8px}
+.card .tagline{margin:3px 0 0;font-size:12.5px;font-style:italic;color:var(--ink-soft)}
+.card .loc{
+  display:flex;align-items:center;gap:5px;margin-top:8px;font-size:12.5px;color:var(--ink-soft);flex-wrap:wrap;
+}
+.card .loc svg{width:13px;height:13px;color:var(--coral);flex:none}
+.card .loc .stars{color:var(--gold);letter-spacing:1.5px;font-size:11.5px}
+.card .sep{color:var(--line-strong)}
+.pricebar{display:flex;align-items:baseline;gap:8px;margin-top:10px;flex-wrap:wrap}
+.pricebar .now{font-family:var(--font-display);font-weight:640;font-size:21px;line-height:1;color:var(--ink)}
+.pricebar .now small{font-size:13px;font-weight:560}
+.pricebar .old{font-size:13px;color:var(--ink-faint);text-decoration:line-through}
+.pricebar .per{font-size:11.5px;color:var(--ink-faint)}
+.pricebar .rate{
+  margin-left:auto;display:flex;align-items:center;gap:5px;background:var(--green-tint);color:var(--green);
+  font-size:12.5px;font-weight:700;border-radius:8px;padding:3px 9px;
+}
+.pricebar .rate svg{width:12px;height:12px}
+.pricebar .rate small{font-weight:500;color:#4c8a70}
+.ams{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+.am{
+  display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--ink-soft);
+  background:var(--cream);border:1px solid var(--line);border-radius:99px;padding:3px 9px;
+}
+.am svg{width:11px;height:11px;color:var(--coral)}
+.am.more{color:var(--ink-faint)}
+.card-actions{display:flex;gap:7px;margin-top:12px;padding-top:11px;border-top:1px dashed var(--line)}
+.ca-btn{
+  display:flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line-strong);
+  background:var(--paper);border-radius:var(--r-sm);padding:7px 10px;font-size:12px;font-weight:600;
+  color:var(--ink-soft);transition:all .13s;text-decoration:none;flex:1;white-space:nowrap;
+}
+.ca-btn svg{width:13px;height:13px;flex:none}
+.ca-btn:hover{border-color:var(--ink);color:var(--ink)}
+.ca-btn.primary{background:var(--ink);border-color:var(--ink);color:var(--cream)}
+.ca-btn.primary:hover{background:#2c3549}
+.geo-wait{
+  position:absolute;top:14px;right:14px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-faint);background:var(--cream);border:1px dashed var(--line-strong);border-radius:99px;padding:2px 8px;
+}
+.empty{
+  text-align:center;padding:52px 20px;color:var(--ink-soft);
+}
+.empty .big{font-family:var(--font-display);font-style:italic;font-size:21px;color:var(--ink);margin-bottom:8px}
+.empty button{margin-top:14px}
+.btn-outline{
+  border:1px solid var(--line-strong);background:var(--paper);border-radius:var(--r-sm);
+  padding:8px 16px;font-size:13px;font-weight:600;color:var(--ink);
+}
+.btn-outline:hover{border-color:var(--coral);color:var(--coral)}
+
+/* ---------- map elements ---------- */
+.leaflet-container{font-family:var(--font-body)}
+.pin{
+  background:var(--ink);color:var(--cream);font-size:12.5px;font-weight:700;padding:5px 11px;border-radius:99px;
+  border:1.5px solid var(--cream);box-shadow:0 2px 6px rgba(30,37,52,.35);white-space:nowrap;
+  position:relative;transform-origin:50% 100%;transition:transform .13s,background .13s;letter-spacing:.01em;
+}
+.pin::after{
+  content:"";position:absolute;left:50%;bottom:-5px;width:8px;height:8px;background:inherit;
+  transform:translateX(-50%) rotate(45deg);border-right:1.5px solid var(--cream);border-bottom:1.5px solid var(--cream);
+  border-radius:1px;
+}
+.pin:hover,.pin.hot{transform:scale(1.12);z-index:1000}
+.pin.active{background:var(--coral)}
+.pin-wrap{background:none!important;border:0!important}
+.cluster{
+  background:var(--paper);color:var(--ink);border:2px solid var(--ink);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;
+  box-shadow:0 0 0 5px rgba(248,243,234,.55),0 2px 8px rgba(30,37,52,.3);
+  font-family:var(--font-display);transition:transform .13s;
+}
+.cluster:hover{transform:scale(1.08)}
+.leaflet-popup-content-wrapper{
+  border-radius:var(--r-lg);box-shadow:var(--shadow-lg);border:1px solid var(--line);
+  background:var(--paper);padding:0;
+}
+.leaflet-popup-content{margin:0;width:288px!important;font-size:13px;line-height:1.45}
+.leaflet-popup-tip{background:var(--paper)}
+.pop{padding:15px 16px 14px}
+.pop h4{margin:0 0 2px;font-family:var(--font-display);font-weight:640;font-size:16px;line-height:1.3;padding-right:14px}
+.pop .ploc{font-size:12px;color:var(--ink-soft);display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.pop .ploc .stars{color:var(--gold);font-size:10.5px;letter-spacing:1.5px}
+.pop .psum{margin:8px 0 0;font-size:12px;color:var(--ink-soft);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.pop .pricebar{margin-top:9px}
+.pop .pricebar .now{font-size:19px}
+.pop .card-actions{margin-top:11px;padding-top:10px}
+.leaflet-popup-close-button{top:9px!important;right:9px!important;font-size:18px!important;color:var(--ink-faint)!important}
+.leaflet-control-zoom{border:1px solid var(--line-strong)!important;border-radius:var(--r-sm)!important;overflow:hidden;box-shadow:var(--shadow-md)!important}
+.leaflet-control-zoom a{background:var(--paper)!important;color:var(--ink)!important;border-color:var(--line)!important}
+.leaflet-control-zoom a:hover{background:var(--cream)!important;color:var(--coral)!important}
+.leaflet-control-attribution{background:rgba(248,243,234,.85)!important;color:var(--ink-soft)!important;font-size:10px!important}
+.leaflet-control-attribution a{color:var(--ink-soft)!important}
+.map-hint{
+  position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:900;pointer-events:none;
+  background:rgba(30,37,52,.88);color:var(--cream);font-size:12px;font-weight:600;border-radius:99px;
+  padding:6px 15px;box-shadow:var(--shadow-md);opacity:0;transition:opacity .3s;white-space:nowrap;backdrop-filter:blur(4px);
+}
+.map-hint.on{opacity:1}
+.autofit{
+  position:absolute;bottom:22px;right:12px;z-index:900;display:flex;align-items:center;gap:8px;
+  background:var(--paper);border:1px solid var(--line-strong);border-radius:99px;padding:6px 12px 6px 13px;
+  font-size:12px;font-weight:600;color:var(--ink-soft);box-shadow:var(--shadow-md);
+}
+
+/* ---------- toast, modal, dropzone ---------- */
+#toast{
+  position:fixed;bottom:26px;left:50%;transform:translate(-50%,16px);z-index:3000;opacity:0;pointer-events:none;
+  background:var(--ink);color:var(--cream);font-size:13px;font-weight:600;border-radius:99px;padding:10px 20px;
+  box-shadow:var(--shadow-lg);transition:all .25s;display:flex;align-items:center;gap:8px;
+}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+#toast svg{width:15px;height:15px;color:#6fcf97}
+.modal-bg{
+  position:fixed;inset:0;background:rgba(30,37,52,.45);backdrop-filter:blur(3px);z-index:2000;
+  display:none;align-items:center;justify-content:center;padding:20px;
+}
+.modal-bg.on{display:flex}
+.modal{
+  background:var(--paper);border-radius:20px;box-shadow:var(--shadow-lg);max-width:560px;width:100%;
+  max-height:84dvh;overflow-y:auto;padding:28px 30px;position:relative;
+  animation:pop .22s cubic-bezier(.2,.9,.3,1.2);
+}
+@keyframes pop{from{transform:scale(.94) translateY(8px);opacity:0}}
+.modal h2{font-family:var(--font-display);font-weight:640;font-size:23px;margin:0 0 4px}
+.modal .lead{color:var(--ink-soft);font-size:13.5px;margin:0 0 18px}
+.modal h3{font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--coral);margin:20px 0 7px}
+.modal p,.modal li{font-size:13.5px;color:var(--ink-soft);margin:6px 0}
+.modal code{background:var(--cream);border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:12px;color:var(--ink)}
+.modal .x{
+  position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:50%;border:1px solid var(--line);
+  background:var(--paper);color:var(--ink-faint);display:flex;align-items:center;justify-content:center;
+}
+.modal .x:hover{color:var(--coral);border-color:var(--coral)}
+#dropzone{
+  position:fixed;inset:0;z-index:4000;display:none;align-items:center;justify-content:center;
+  background:rgba(228,87,61,.12);border:3px dashed var(--coral);
+}
+#dropzone.on{display:flex}
+#dropzone .inner{
+  background:var(--paper);border-radius:20px;box-shadow:var(--shadow-lg);padding:30px 44px;
+  font-family:var(--font-display);font-size:21px;font-weight:640;color:var(--ink);
+}
+
+/* ---------- mobile ---------- */
+#viewToggle{display:none}
+@media (max-width:900px){
+  :root{--panel-w:100%}
+  main{flex-direction:column}
+  aside{width:100%;min-width:0;border-right:0;flex:1}
+  #map{position:absolute;inset:0;z-index:400;display:none}
+  body.mapmode #map{display:block}
+  body.mapmode aside{display:none}
+  #viewToggle{
+    display:flex;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:1500;
+    align-items:center;gap:8px;background:var(--ink);color:var(--cream);border:0;border-radius:99px;
+    padding:12px 22px;font-size:14px;font-weight:700;box-shadow:var(--shadow-lg);
+  }
+  #viewToggle svg{width:16px;height:16px}
+  .topbar{flex-wrap:wrap;gap:8px;padding:10px 14px}
+  .tb-btn span{display:none}
+  .autofit{bottom:74px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">travelist<span class="dot">.</span></div>
+    <div class="sub">Mapa ofert · Customer Service</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="status-pill" id="geoStatus"><span class="spin"></span><span id="geoStatusTxt"></span></div>
+  <button class="tb-btn" id="btnShare" title="Skopiuj link do bieżącego widoku z filtrami">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+    <span>Udostępnij widok</span>
+  </button>
+  <button class="tb-btn" id="btnCsv" title="Wczytaj inny plik CSV z ofertami">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
+    <span>Wczytaj CSV</span>
+  </button>
+  <button class="tb-btn accent" id="btnHelp">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+    <span>Pomoc</span>
+  </button>
+  <input type="file" id="fileInput" accept=".csv,text/csv" hidden>
+</header>
+
+<main>
+  <aside>
+    <div class="panel-head">
+      <div class="searchrow">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input id="q" type="text" placeholder="Szukaj: hotel, miasto, region…" autocomplete="off" aria-label="Szukaj oferty">
+        <button id="qClear" aria-label="Wyczyść wyszukiwanie">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="controlrow">
+        <div class="count" id="count"></div>
+        <div class="grow"></div>
+        <button id="filterToggle" aria-expanded="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.5V19l4 2v-8.5z"/></svg>
+          Filtry <span class="fbadge" id="fbadge"></span>
+        </button>
+        <div class="sortwrap">
+          <select id="sort" aria-label="Sortowanie">
+            <option value="price-asc">Cena: najniższa</option>
+            <option value="price-desc">Cena: najwyższa</option>
+            <option value="disc-desc">Rabat: największy</option>
+            <option value="rate-desc">Ocena: najwyższa</option>
+            <option value="name-asc">Nazwa: A–Z</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div id="filters">
+      <div class="fgroup">
+        <div class="flabel">Region <button class="reset-link" data-reset="regions">wyczyść</button></div>
+        <div class="chips" id="regionChips"></div>
+      </div>
+      <div class="fgroup">
+        <div class="flabel">Kategoria obiektu <button class="reset-link" data-reset="stars">wyczyść</button></div>
+        <div class="chips" id="starChips"></div>
+      </div>
+      <div class="fgroup">
+        <div class="flabel">Cena za noc (2 os.) <button class="reset-link" data-reset="price">wyczyść</button></div>
+        <div class="range-wrap">
+          <div class="range-track"><div class="range-fill" id="rangeFill"></div></div>
+          <input type="range" id="pMin" aria-label="Cena minimalna">
+          <input type="range" id="pMax" aria-label="Cena maksymalna">
+        </div>
+        <div class="range-vals"><span>od <b id="pMinLbl"></b></span><span>do <b id="pMaxLbl"></b></span></div>
+      </div>
+      <div class="fgroup">
+        <div class="flabel">Ocena gości <button class="reset-link" data-reset="rating">wyczyść</button></div>
+        <div class="chips" id="ratingChips"></div>
+      </div>
+      <div class="fgroup">
+        <div class="flabel">Minimalny rabat <button class="reset-link" data-reset="discount">wyczyść</button></div>
+        <div class="chips" id="discountChips"></div>
+      </div>
+      <div class="fgroup">
+        <div class="flabel">Udogodnienia <button class="reset-link" data-reset="amenities">wyczyść</button></div>
+        <div class="chips" id="amenityChips"></div>
+      </div>
+      <div class="fgroup">
+        <div class="switchrow">
+          <span>Pokaż oferty zakończone</span>
+          <label class="switch"><input type="checkbox" id="showFinished"><span class="tr"></span></label>
+        </div>
+      </div>
+    </div>
+
+    <div id="list" aria-live="polite"></div>
+  </aside>
+
+  <div id="map" role="application" aria-label="Mapa ofert"></div>
+  <div class="map-hint" id="mapHint"></div>
+  <label class="autofit" title="Automatycznie dopasuj mapę do wyników filtrowania">
+    <span>Auto-dopasowanie</span>
+    <span class="switch" style="width:34px;height:20px"><input type="checkbox" id="autoFit" checked><span class="tr"></span></span>
+  </label>
+</main>
+
+<button id="viewToggle">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-6-2V4l6 2m0 14l6-2m-6 2V6m6 12l6 2V6l-6-2m0 14V4M9 6l6-2"/></svg>
+  <span id="viewToggleTxt">Mapa</span>
+</button>
+</div>
+
+<div id="toast" role="status"></div>
+
+<div class="modal-bg" id="helpModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+    <button class="x" data-close aria-label="Zamknij">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+    <h2 id="helpTitle">Jak korzystać z mapy ofert</h2>
+    <p class="lead">Wewnętrzne narzędzie zespołu Customer Service Travelist do doradzania klientom.</p>
+
+    <h3>Codzienna praca</h3>
+    <ul>
+      <li>Ustaw filtry (region, cena, ocena, udogodnienia) — mapa i lista aktualizują się na żywo.</li>
+      <li>Kliknij <b>„Na mapie”</b> na karcie, aby przelecieć do obiektu; kliknięcie znacznika podświetla kartę na liście.</li>
+      <li><b>„Kopiuj”</b> na karcie kopiuje link do oferty na travelist.pl — wklej go klientowi na czacie/mailu.</li>
+      <li><b>„Udostępnij widok”</b> (u góry) kopiuje link do tej strony z zapisanymi filtrami — możesz wysłać koledze dokładnie ten sam widok.</li>
+    </ul>
+
+    <h3>Aktualizacja danych</h3>
+    <ul>
+      <li>Strona wczytuje plik <code>offers.csv</code> leżący obok <code>index.html</code>. Aby zaktualizować oferty, podmień ten plik w repozytorium — nic więcej.</li>
+      <li>Możesz też jednorazowo przeciągnąć plik CSV na okno przeglądarki albo użyć przycisku „Wczytaj CSV”.</li>
+      <li>Format: separator <code>;</code>, nagłówki jak w eksporcie (m.in. <code>hotel_name</code>, <code>city</code>, <code>region</code>, <code>street</code>, <code>price_pln</code>, <code>amenities</code>…).</li>
+      <li>Opcjonalnie dodaj kolumny <code>lat</code> i <code>lng</code> — wtedy pozycje są natychmiastowe i w 100% dokładne.</li>
+    </ul>
+
+    <h3>Skąd mapa zna położenie hoteli?</h3>
+    <p>Jeśli w danych nie ma współrzędnych, adresy są geokodowane usługą OpenStreetMap (Nominatim) — bezpłatnie, ok. 1 adres/sek. Wyniki zapisują się w pamięci przeglądarki, więc kolejne wizyty są natychmiastowe.</p>
+
+    <h3>Dobre nawyki</h3>
+    <ul>
+      <li>Narzędzie naprawia automatycznie oceny uszkodzone przez Excela (np. <code>4.lip</code> → <code>4.7</code>). Mimo to najlepiej edytować CSV w edytorze tekstu lub eksportować bez otwierania w Excelu.</li>
+      <li>Cena to zawsze „od … zł za 2 osoby / noc” — szczegóły w dymku oferty.</li>
+    </ul>
+  </div>
+</div>
+
+<div id="dropzone"><div class="inner">Upuść plik CSV, aby wczytać oferty</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
+<script>
+'use strict';
+
+/* ================= CONFIG ================= */
+const CONFIG = {
+  csvUrl: 'offers.csv',                 // plik danych obok index.html
+  tileUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  tileAttribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  maxTileZoom: 19,
+  nominatim: 'https://nominatim.openstreetmap.org/search',
+  geoDelayMs: 1150,                     // limit Nominatim: 1 zapytanie/sek.
+  geoCacheKey: 'tl_geocache_v1'
+};
+
+// Przybliżone współrzędne awaryjne dla przykładowych danych (używane tylko
+// gdy geokodowanie jest niedostępne; po geokodowaniu pozycja jest korygowana).
+const FALLBACK_COORDS = {
+  '130007': [49.7062, 18.9934],   // Mercure Szczyrk Resort
+  '131504': [50.9001, 15.3321],   // Apartamenty w Elements, Świeradów-Zdrój
+  '129986': [54.0069, 14.6947]    // Hotel JUVENA, Międzywodzie
+};
+
+const EMBEDDED_CSV = "﻿offer_id;url;hotel_name;marketing_title;country;region;city;street;postal_code;star_rating;price_pln;old_price_pln;discount_pct;price_note;rating_avg;rating_count;is_finished;summary;amenities;included;excluded;info_list;hotel_description;rooms;scraped_at\n130007;https://travelist.pl/130007/polska-szczyrk-mercure-szczyrk-resort/;Mercure Szczyrk Resort;Wyjątkowy pobyt w Beskidach;Polska;Śląskie;Szczyrk;Wrzosowa 28a;43-370;4;349.0;572.13;39;Ceny na najbliższe terminy zaczynają się od 349 zł za 2 osoby/noc;4.lip;367;false;Luksusowy, największy w regionie hotel położony 660 m n.p.m., w Szczyrku, z widokiem na góry - śniadania lub 2 posiłki, dostęp do kompleksu basenowego FLOW z basenem, zjeżdżalniami i jacuzzi i więcej w cenie! **Opcja pobytu dzieci GRATIS!** **Travelist Hotel Star 2026: Najlepszy Obiekt w Górach.**;Recepcja czynna całą dobę | Bar | Parking dla rowerów | Wypożyczalnia rowerów | Udogodnienia dla osób niepełnosprawnych | Bezpłatny Internet Wi-Fi | Siłownia | Jacuzzi | Basen kryty | Winda | Hotel dla niepalących | Możliwość przyjazdu z pupilem | Restauracja | Room service | Sauna | Spa;\"Zakwaterowanie | **Śniadania** (w godz. 7-10) w formie bufetu, z napojami lub **śniadania i obiadokolacje** (w godz. 17:30-20) w formie bufetu, z napojami - możliwość wyboru na dalszym etapie rezerwacji | **Pobyt dziecka do lat 12 na dostawce GRATIS** (ze świadczeniami) - w Apartamencie Junior Suite, Executive Suite, w pokoju Classic Double z rozkładaną sofą i widokiem na góry, pokoju Privilege Double/Twin z balkonem i widokiem na góry lub **pobyt 2 dzieci do lat 12 na dostawce GRATIS** (ze świadczeniami) - w pokoju Superior Double oraz w pokoju Family (w pakiecie na min. 3 noce), po dodaniu dziecka w składzie podróżnych; dodatkowo 1 dziecko do lat 3 na łóżku z rodzicami gratis | **Nielimitowany dostęp do kompleksu basenowego FLOW**: z basenem, brodzikiem dla dzieci, 2 zjeżdżalniami, rwącą rzeką, pool barem, jacuzzi wewnętrznym, jacuzzi zewnętrznym oraz Bistro, **dostęp dla osób zameldowanych w pokojach Privilege/Superior/Junior/Executive** | **Kompleks basenowy FLOW**: z basenem, brodzikiem dla dzieci, 2 zjeżdżalniami, rwącą rzeką, pool barem, jacuzzi wewnętrznym, jacuzzi zewnętrznym oraz Bistro - **dostęp 2 godziny dziennie dla każdej osoby zameldowanej w pokojach Classic** | **Dostęp do sali zabaw dla dzieci** | Dostęp do **centrum fitness** | Atrakcje na Wakacje (01.07-31.08.2026): m.in. wieczory z muzyką na żywo, klimatyczne ogniska i wieczory w plenerze, letnia strefa zewnętrzna FLOW - w zależności od warunków pogodowych (zgodnie z harmonogramem hotelu) | **Atrakcje na Wakacje** (01.07-31.08.2026) dla pobytów ze śniadaniem i obiadokolacją: m.in. codzienny blok „Przygoda & Przetrwanie”, kosmiczna misja „Między Galaktykami”, olimpijskie wyzwania sportowe, tematyczne dni kulturowe, warsztaty kreatywne DIY (zgodnie z harmonogramem hotelu). Szczegóły w sekcji „Warto wiedzieć”. | Internet Wi-Fi\";Opłaty klimatycznej (płatność na miejscu) | Opłaty za parking - 30 zł/auto/doba | Dostępu do saun | Opłat za pozostałe usługi w hotelu | W przypadku braku zgłoszenia pobytu psa Hotel zastrzega sobie możliwość naliczenia opłaty zgodnie z obowiązującym regulaminem. Jednocześnie w restauracjach Seasons oraz Flame obowiązuje bezwzględny zakaz wprowadzania pupili. Ze względu na dużą liczbę Gości oraz zwiększony poziom hałasu, przestrzenie te nie są komfortowe dla zwierząt. Uprzejmie prosimy, aby na czas korzystania z restauracji pozostawić pupile w pokojach hotelowych.;\"Doba hotelowa: 16:00 - 12:00 | Zameldowanie: Od godz. 16:00 | Wymeldowanie: Do godz. 12:00 | Dzieci i dostawki: 1 dziecko do 3 lat na łóżku z rodzicami; po dodaniu dziecka w składzie podróżnych. W pokojach Privilege Double z balkonem i widokiem na góry, Classic Double z rozkładaną sofą i widokiem na góry oraz apartamentach Executive Suite i Junior Suite - możliwość dostawki dla 1 dziecka od 4 lat lub 1 osoby dorosłej. W Pokoju Superior Double z balkonem widokiem na góry - możliwość dostawki dla 2 dzieci od 4 lat lub 2 osób dorosłych. Wybierz daty w kalendarzu oraz skład podróżnych, by sprawdzić aktualną cenę pobytu z dostawką. W pokojach Classic Twin z widokiem na góry, Privilege Twin z balkonem i widokiem na góry, Classic Queen z widokiem na góry i Classic Double z widokiem na góry - brak możliwości dostawek. *W Obiekcie obowiązują standardy ochrony małoletnich, o których mowa w ustawie z dnia 28 lipca 2023 r. o zmianie ustawy – Kodeks rodzinny i opiekuńczy oraz niektórych innych ustaw (Dz.U. z 2023 poz. 1606). W związku z powyższym, przy meldunku w Obiekcie prosimy o okazanie dokumentu tożsamości dziecka lub innego dokumentu potwierdzającego, że osoba dorosła ma prawo do sprawowania opieki na dzieckiem na terenie Obiektu (upoważnienie od rodziców dziecka lub orzeczenie sądowe).* | Z pupilem: Za dopłatą - 70 zł/zwierzę/doba; z aktualną książeczką szczepień; konieczny wcześniejszy kontakt z recepcją; możliwość zapłaty na dalszym etapie rezerwacji. Hotel przygotował dla zwierząt specjalne udogodnienia, takie jak miski oraz legowiska, które udostępniane są na życzenie Gości, aby pobyt pupili był jak najbardziej komfortowy. W przypadku braku zgłoszenia pobytu psa Hotel zastrzega sobie możliwość naliczenia opłaty zgodnie z obowiązującym regulaminem. Jednocześnie w restauracjach Seasons oraz Flame obowiązuje bezwzględny zakaz wprowadzania pupili. Ze względu na dużą liczbę Gości oraz zwiększony poziom hałasu, przestrzenie te nie są komfortowe dla zwierząt. Uprzejmie prosimy, aby na czas korzystania z restauracji pozostawić pupile w pokojach hotelowych. | Parking: Za dopłatą - 30 zł/auto/doba. | Rezerwacje Grupowe: Podane ceny dotyczą rezerwacji indywidualnych, maks. do 8 pokoi. Jeśli chcesz zarezerwować pobyt dla większej grupy, przejdź do sekcji **[Zapytania Grupowe](https://zapytania.travelist.pl/ \"\"Zapytania Grupowe\"\")**. | **Atrakcje na Wakacje (01.07-31.08.2026)**: (dla pobytów ze śniadaniem i obiadokolacją) Główne punkty programu (wybrane atrakcje): **w lipcu** - tematyczne dni kulturowe (Włochy, Meksyk, Azja, USA, Francja, Hiszpania), - codzienny blok „Przygoda & Przetrwanie” (survival, mapy, kompas), **w sierpniu** - podróż w czasie (Egipt, średniowiecze, lata 80.), - kosmiczna misja „Między Galaktykami” z nauką o planetach, - olimpijskie wyzwania sportowe z medalami, - warsztaty kreatywne DIY oraz gry terenowe *Hotel zastrzega sobie prawo do zmian w harmonogramie.* | Warunki: Twoja rezerwacja jest bezpośrednią umową między Tobą a Oferentem Usług/Obiektem, dotyczącą rezerwacji pobytu zgodnie z wybraną Usługą/wybranym Obiektem lub bezpośrednią umową między Tobą a Organizatorem turystyki, dotyczącą rezerwacji Usługi Hotel+Lot. Stroną odpowiedzialną za prawidłowe wykonanie umowy w odniesieniu do rezerwacji pobytu w obiekcie jest Oferent lub Organizator turystyki w przypadku rezerwacji Usługi Hotel+Lot, których dane znajdziesz w sekcji Informacja dla konsumentów. W odniesieniu do rezerwacji usług Oferenta obowiązuje Regulamin Serwisu Travelist , Regulamin Środków i Kart Podarunkowych , Regulamin Usługi Zakwaterowania oraz Warunki Rezygnacji . W odniesieniu do rezerwacji Usługi Hotel+Lot obowiązuje Regulamin Serwisu , Regulamin Travelist Hotel+Lot oraz Warunki Rezygnacji Usługi Hotel+Lot . Szczegółowe informacje na temat sposobu funkcjonowania serwisu znajdziesz w zakładce „Jak działamy” dostępnej tutaj . W przypadku Usługi Hotel+Lot Travelist działa jako agent Organizatora Turystyki. Transport nie jest wliczony w cenę. Secret Escapes Limited a company registered in England & Wales under number 07026107, registered office 88 Kingsway, London, WC2B 6AA. © Secret Escapes 2019\";DLACZEGO WARTO? Mercure Szczyrk Resort to komfortowy, największy w regionie hotel położony w malowniczym sercu Beskidów, w miejscowości Szczyrk. Położony jest 660 m n.p.m. Oferuje gościom nowoczesne pokoje z widokiem na góry, 2 restauracje, 3 bary, a także bogate zaplecze rekreacyjne, w tym basen, spa i siłownię. Idealny dla miłośników aktywnego wypoczynku, w tym narciarstwa i turystyki pieszej, jak również dla osób szukających relaksu i odnowy biologicznej. Hotel wyróżnia się wysokim standardem obsługi oraz licznymi udogodnieniami dla rodzin z dziećmi. W pokojach znajdują się butelki wielokrotnego użytku oraz woda na korytarzach. Hotel został zaprojektowany z poszanowaniem regionu i wykorzystuje wiele eko-rozwiązań. Na gości czekają nowoczesne, klimatyzowane pokoje z łazienką, suszarką do włosów, telewizorem oraz Wi-Fi. Pokoje są z widokiem na góry. ATRAKCJE OBIEKTU - basen wewnętrzny - 3 zewnętrzne jacuzzi - sauny - spa - masaże - zabiegi na twarz i ciało - centrum fitness - wypożyczalnia rowerów DLA NAJMŁODSZYCH - sala zabaw dla dzieci - pokój gier - możliwość wypożyczenia łóżeczka turystycznego - możliwość wypożyczenia wanienki - wypożyczalnia rowerków dziecięcych - 3 kluby dla dzieci - bogaty program atrakcji i animacji (zgodnie z harmonogramem hotelu) JEDZENIE I PICIE W hotelu znajdują się 2 restauracje - Restauracja Flame i Bistro Flow oraz 3 bary - Pool Bar, Bar Luna i Wow Bar.;Pokój Family (2 pokoje położone w pobliżu siebie) / maks. 3 osoby dorosłe i maks. 2 dzieci / Dwa pokoje z widokiem na góry położone w pobliżu siebie: klimatyzowany pokój z 1 łóżkiem łączonym i rozkładaną sofą dla 1 osoby oraz pokój Classic Twin z dwoma oddzielnymi łóżkami o pow. ok. 23 m2 || Classic Double Room with Sofa Bed and Mountain View / maks. 3 osoby dorosłe / Klimatyzowany pokój z 1 łóżkiem podwójnym lub z 2 łóżkami pojedynczymi. Pow. ok. 23 m2. Widok na góry. || Classic Queen Room with Mountain View / maks. 2 osoby dorosłe / Klimatyzowany pokój z 1 łóżkiem podwójnym. Pow. ok. 23 m2. Widok na góry. || Classic Twin Room with Mountain View / maks. 2 osoby dorosłe / Klimatyzowany pokój z 2 łóżkami pojedynczymi. Pow. ok. 23 m2. Widok na góry. || Privilege Double Room with Sofa Bed and Balcony - Mountain View / maks. 3 osoby dorosłe / Klimatyzowany pokój z 1 łóżko podwójne i rozkładaną sofą. Pow. ok. 28 m2. Widok na góry. Pokój posiada balkon. || Privilege Twin Room with Sofa Bed and Balcony - Mountain View / maks. 3 osoby dorosłe / Klimatyzowany pokój z 2 łóżkami pojedynczymi (z możliwością złączenia) i rozkładaną sofą. Pow. ok. 28 m2. Widok na góry. Pokój posiada balkon. || Pokój Superior Double z balkonem widokiem na góry / maks. 4 osoby dorosłe / Klimatyzowany pokój z sypialnią i częścią dzienną. W sypialni znajduje się 1 łóżko podwójne, a w części dziennej rozkładana sofa. Pow. ok. 37 m2. Widok na góry. Pokój posiada balkon. || Pokój Privilege Double z balkonem i widokiem na góry / maks. 3 osoby dorosłe / Klimatyzowany pokój z 1 łóżkiem podwójnym i jednoosobową sofą. Pow. ok. 28 m2. Pokój posiada balkon i widok na góry, || Pokój Classic Double z widokiem na góry / maks. 2 osoby dorosłe / Klimatyzowany pokój z 1 łóżkiem podwójnym. Pow. ok. 24 m2. Widok na góry. || Pokój Classic Queen z widokiem na góry / maks. 2 osoby dorosłe / Klimatyzowany pokój z 1 łóżkiem podwójnym. Pow. ok. 24 m2. Widok na góry. || Pokój Classic Double z rozkładaną sofą i widokiem na góry / maks. 3 osoby dorosłe / Klimatyzowany pokój z 1 łóżkiem podwójnym lub z 2 łóżkami pojedynczymi oraz rozkładaną sofą. Pow. ok. 23 m2. Widok na góry. || Apartament Executive Suite / maks. 3 osoby dorosłe / Klimatyzowany apartament z sypialnią z 1 łóżkiem podwójnym i przestronnym salonem z rozkładaną sofą. Pow. ok. 60 m2. Apartament posiada balkon. || Apartament Junior Suite / maks. 3 osoby dorosłe / Klimatyzowany apartament z sypialnią i częścią dzienną. W sypialni znajduje się 1 łóżko podwójne, a w części dziennej rozkładana sofa. Pow. ok. 42 m2. Apartament posiada balkon. || Pokój Privilege Twin z balkonem i widokiem na góry / maks. 2 osoby dorosłe / Klimatyzowany pokój z 2 łóżkami pojedynczymi (z możliwością złączenia) i rozkładaną sofą. Pow. ok. 28 m2. Widok na góry. Pokój posiada balkon. || Pokój Classic Twin z widokiem na góry / maks. 2 osoby dorosłe / Klimatyzowany pokój z 2 łóżkami pojedynczymi. Pow. ok. 24 m2. Widok na góry.;3.07.2026\n131504;https://travelist.pl/131504/polska-swieradow-zdroj-apartamenty-w-elements/;Apartamenty w Elements Hotel & SPA;Wypoczynek z widokiem na panoramę Gór Izerskich;Polska;Dolnośląskie;Świeradów-Zdrój;Zakopiańska 20a;59-850;5;217.3;387.39;44;Ceny na najbliższe terminy zaczynają się od 217 zł za 2 osoby/noc;4.lip;43;false;\"Nowoczesne apartamenty w luksusowym kompleksie, tylko 300 m od Ośrodka Narciarskiego SKI&SUN z jedną z najnowocześniejszych kolei gondolowych w Polsce - śniadania lub 2 posiłki, dostęp do basenu, strefy saun i więcej w cenie! **Pobyt z dziećmi GRATIS**: na min. 5 nocy oraz 1 dziecko do lat 12 na dostawce i 1 dziecko do lat 3 na łóżku z rodzicami w cenie pakietu. Apartamenty Elements wchodzą w skład pięciogwiazdkowego kompleksu **[Elements Hotel & SPA 5*](https://travelist.pl/118167/polska-swieradow-zdroj-elements-hotel-spa/ \"\"Sprawdź ofertę\"\")**\";Recepcja czynna całą dobę | Bar | Wypożyczalnia rowerów | Udogodnienia dla osób niepełnosprawnych | Bezpłatny Internet Wi-Fi | Siłownia | Jacuzzi | Basen kryty | Winda | Przechowalnia bagaży | Płatny parking w hotelu | Możliwość przyjazdu z pupilem | Restauracja | Sauna | Spa;\"Zakwaterowanie | **Śniadania** (w godz. 8-11) w formie bufetu, z napojami lub **śniadania i obiadokolacje** (w godz. 16-19) w formie bufetu, z napojami - do wyboru na dalszym etapie rezerwacji. Podczas śniadań i obiadokolacji jest dostępny bufet dziecięcy. Posiłki podawane są w budynku hotelowym | **Pobyt dziecka do lat 12 na dostawce GRATIS** (ze świadczeniami) - w pakiecie: Pobyt z dziećmi GRATIS, po dodaniu dziecka w składzie podróżnych; dodatkowo 1 dziecko do lat 3 na łóżku z rodzicami gratis | **Nielimitowany dostęp do strefy wellness** | **Dostęp do basenu** rekreacyjnego z brodzikiem oraz wanną z hydromasażem | **Dostęp do strefy saun**: fińskiej, infrared, sauny bio i ziołowej oraz łaźni parowej | **Nielimitowany wstęp do rodzinnych atrakcji**: Game Room z szerokim wyborem gier i konsolami, Play Room z zabawkami dla dzieci, Game Zone z piłkarzykami i automatami do gier, **Małpi Gaj dla dzieci** (zlokalizowany w budynku hotelowym w sali zabaw na 6 piętrze) | Weekendowe **animacje dla dzieci i dorosłych** oraz codzienne w czasie świąt, długich weekendów, ferii zimowych i wakacji | Dostęp do sali fitness | **Możliwość korzystania z zajęć fitness** (zgodnie z harmonogramem hotelu, obowiązują zapisy u Concierge) | Dostęp do zewnętrznego placu zabaw | **W każdą sobotę – koncerty z muzyką na żywo** | Możliwość skorzystania z pomocy Concierge | Internet Wi-Fi\";Opłaty klimatycznej (płatność na miejscu) | Opłaty za parking - 40 zł/auto/doba (zewnętrzny) lub 60 zł/auto/doba (wewnętrzny) | Opłat za pozostałe usługi w obiekcie;\"Doba hotelowa: 16:00 - 11:00 | Zameldowanie: Od godz. 16:00 | Wymeldowanie: Do godz. 11:00 | Dzieci i dostawki: 1 dziecko do 3 lat na łóżku z rodzicami – gratis (ze świadczeniami); po dodaniu dziecka w składzie podróżnych. Łóżeczko dziecięce za dopłatą – 40 zł/doba (na życzenie). Możliwość dostawki (rozkładana sofa) dla 2 dzieci w wieku 4-17 lat. Wybierz daty w kalendarzu oraz skład podróżnych, by sprawdzić aktualną cenę pobytu z dostawką. Brak możliwości dostawki dla osób dorosłych. | Z pupilem: Za dopłatą - 90 zł/zwierzę/doba; konieczny wcześniejszy kontakt z recepcją. | Parking: Za dopłatą - 40 zł/auto/doba (zewnętrzny) lub 60 zł/auto/doba (wewnętrzny). | Dodatkowe informacje: **Apartamenty zlokalizowane są w osobnym budynku (oddalonym o ok. 100 metrów od budynku hotelu)** W apartamentach przy pobytach min. 6 dób oferowany jest jednorazowy serwis na życzenie. Usługę należy zgłosić w recepcji. Serwis obejmuje wymianę ręczników (tylko jeśli są pozostawione na podłodze), odświeżenie łazienki, wyniesienie śmieci, uzupełnienie wody i zestawu kawowego. W przypadku pobytów krótszych niż 6 dób oferujemy odpłatny serwis apartamentów. **Korzystanie ze strefy saun**: Zgodnie z regulaminem **strefa saun jest beztekstylna**, co znaczy, że nie korzystamy w niej ze strojów kąpielowych, natomiast **obowiązkowe jest korzystanie z dwóch ręczników** ewentualnie prześcieradła, lub pareo saunowego. Jeden ręcznik służy do osłonięcia ciała, drugi natomiast pod stopy tak, aby żadna z części ciała nie miała styczności z drewnianą ławą. Ręcznik znajdujący się pod stopami ma również zapobiegać skapywaniu potu na ławy, co jest podyktowane zasadami higieny. | Warunki: Twoja rezerwacja jest bezpośrednią umową między Tobą a Oferentem Usług/Obiektem, dotyczącą rezerwacji pobytu zgodnie z wybraną Usługą/wybranym Obiektem lub bezpośrednią umową między Tobą a Organizatorem turystyki, dotyczącą rezerwacji Usługi Hotel+Lot. Stroną odpowiedzialną za prawidłowe wykonanie umowy w odniesieniu do rezerwacji pobytu w obiekcie jest Oferent lub Organizator turystyki w przypadku rezerwacji Usługi Hotel+Lot, których dane znajdziesz w sekcji Informacja dla konsumentów. W odniesieniu do rezerwacji usług Oferenta obowiązuje Regulamin Serwisu Travelist , Regulamin Środków i Kart Podarunkowych , Regulamin Usługi Zakwaterowania oraz Warunki Rezygnacji . W odniesieniu do rezerwacji Usługi Hotel+Lot obowiązuje Regulamin Serwisu , Regulamin Travelist Hotel+Lot oraz Warunki Rezygnacji Usługi Hotel+Lot . Szczegółowe informacje na temat sposobu funkcjonowania serwisu znajdziesz w zakładce „Jak działamy” dostępnej tutaj . W przypadku Usługi Hotel+Lot Travelist działa jako agent Organizatora Turystyki. Transport nie jest wliczony w cenę. Secret Escapes Limited a company registered in England & Wales under number 07026107, registered office 88 Kingsway, London, WC2B 6AA. © Secret Escapes 2019\";DLACZEGO WARTO? Elements Apartments to rodzinne apartamenty będące odrębną częścią 5* obiektu Elements Hotel & SPA w Świeradowie-Zdroju. Goście Elements Apartments mogą korzystać ze wszystkich atrakcji dostępnych w hotelu. Świetna lokalizacja obok wielu szlaków turystycznych i rowerowych, a także bliskość stoków narciarskich sprawia, że to miejsce jest idealne dla miłośników aktywnego wypoczynku. Oddane do dyspozycji gości pomieszczenia w kompleksie są jasne, przestronne i dopracowane w najdrobniejszych szczegółach. Każdy z apartamentów (bez kategoryzacji, apartamenty znajdują się w osobnym budynku, oddalonym o ok. 100 m od budynku głównego) został urządzony w nowoczesnym stylu. Na wyposażeniu – poza wygodnymi łóżkami – znajdują się, m.in.: telewizor z płaskim ekranem, zestaw do parzenia kawy/herbaty, czajnik oraz chłodziarka. Na terenie całego kompleksu można połączyć się z szybką siecią Wi-Fi bez dodatkowych opłat. ATRAKCJE OBIEKTU • Strefa basenowa: 1 basen wewnętrzny – rekreacyjny, brodzik dla dzieci • Basen zewnętrzny z leżakami - dostępny w sezonie letnim (do dnia 18 września) • Wanna z hydromasażem • Strefa saun: sauna fińska, infrared, sauna bio i ziołowa, ceremonie saunowe • Tężnia solankowa • Łaźnia parowa z aromaterapią • Sala fitness ze sprzętem sportowym • Zajęcia fitness (zgodnie z harmonogramem hotelu) • Koncerty na żywo w lobby – w wybrane dni • Sensus SPA: bogata oferta masaży i zabiegów • Game Room • Taras wypoczynkowy (przy restauracji) DLA NAJMŁODSZYCH • Brodzik • Game Room • Program animacji dla dzieci oraz opieka animatorów w wybranych pakietach i terminach • Play Room • Rodzinna Sauna Fińska • Małpi Gaj dla dzieci (zlokalizowany w budynku hotelowym w sali zabaw na 6 piętrze) • Menu dla dzieci JEDZENIE I PICIE W kompleksie hotelowym znajdują się restauracja oraz Forum Bar. Restauracja Elements pozwoli delektować się daniami sezonowymi opartymi na produktach regionalnych. Oferuje ponadto wybór najlepszych win oraz wybornych deserów. Idealnym miejscem na kawę, ciasto czy orzeźwiającego drinka będzie znajdujący się w sercu hotelu, tuż przy samej recepcji Forum Bar. Wieczorami można tu także posłuchać muzyki na żywo.;Apartament Studio / maks. 4 osoby dorosłe / Apartament nieskategoryzowany, w oddzielnym budynku, z 1 łóżkiem podwójnym. Pow. ok. 25 m2. Każdy apartament posiada balkon lub taras. Apartamenty zlokalizowane są w budynkach oddalonych od części hotelowej o 100 metrów. || Apartament 2-osobowy Elements z sauną z opcją dwóch dostawek / maks. 4 osoby dorosłe / Apartament nieskategoryzowany, w oddzielnym budynku. Składa się z salonu z rozkładaną sofą oraz sypialni z 1 łóżkiem podwójnym. W apartamencie znajduje się prywatna sauna. Pow. ok. 40 m2. Każdy apartament posiada balkon lub taras. Apartamenty zlokalizowane są w budynkach oddalonych od części hotelowej o 100 metrów. || Apartament 2-osobowy Elements z aneksem kuchennym / maks. 4 osoby dorosłe / Apartament nieskategoryzowany, w oddzielnym budynku. Składa się z salonu z rozkładaną sofą oraz sypialni z 1 łóżkiem podwójnym. Pow. ok. 40 m2. Każdy apartament posiada balkon lub taras. Apartamenty zlokalizowane są w budynkach oddalonych od części hotelowej o 100 metrów.;3.07.2026\n129986;https://travelist.pl/129986/polska-miedzywodzie-juvena-wellness-spa/;Hotel JUVENA SPA&Wellness;Luksusowy hotel w Międzywodziu;Polska;Zachodniopomorskie;Międzywodzie;Leśna 4;72-415;4;476.0;767.74;38;Ceny na najbliższe terminy zaczynają się od 476 zł za 2 osoby/noc;4.sie;68;false;Elegancki i stylowy hotel tylko 200 m od plaży w Międzywodziu - śniadania i obiadokolacje, nielimitowany dostęp do strefy wellness, basen na dachu i więcej w cenie! **Hotel dla osób powyżej 12 lat**.;Recepcja czynna całą dobę | Bar | Parking dla rowerów | Wypożyczalnia rowerów | Udogodnienia dla osób niepełnosprawnych | Bezpłatny Internet Wi-Fi | Siłownia | Jacuzzi | Basen kryty | Winda | Przechowalnia bagaży | Basen zewnętrzny | Płatny parking w hotelu | Restauracja | Sauna | Spa;Zakwaterowanie | **Śniadania** (w godz. 7:30-10:30, w weekendy do 11) w formie bufetu, z napojami i **obiadokolacje** (w godz. 17-19:30) w formie bufetu lub serwowane (w zależności od ilości gości), woda i soki w cenie | Nielimitowany dostęp do strefy wellness: baseny, sauny, jacuzzi, strefa relaksu | **10% rabatu na zabiegi SPA i Grotę Solną** | Dostęp do tarasu i basenu na dachu (od maja do października) | Dostęp do siłowni | Dostęp do czytelni - pokoju cichych aktywności | Internet Wi-Fi;Opłaty klimatycznej (płatność na miejscu) | Opłaty za parking zewnętrzny lub garaż - 40 zł/auto/doba dla pobytów w terminie 01.10-31.05 oraz 100 zł/auto/doba dla pobytów w terminie 01.06-30.09 | Opłat za pozostałe usługi w hotelu;Doba hotelowa: 16:00 - 11:00 | Zameldowanie: Od godz. 16:00 | Wymeldowanie: Do godz. 11:00 | Dzieci i dostawki: W Pokoju rodzinnym możliwość dostawki dla 2 dzieci od 12 lat (ze świadczeniami). Wybierz daty w kalendarzu oraz skład podróżnych, by sprawdzić aktualną cenę pobytu z dostawką. **Hotel TYLKO dla osób od 12 lat!** | Z pupilem: Nie. | Parking: Płatny (parking zewnętrzny lub garaż), 40 zł/auto/doba dla pobytów w terminie 01.10-31.05 oraz 100 zł/auto/doba dla pobytów w terminie 01.06-30.09. | Dodatkowe informacje: Dostęp do saun wyłącznie dla osób w wieku 18+. | Płatność: Jeśli zarezerwujesz tę ofertę co najmniej 14 dni przed rozpoczęciem pobytu, możesz wybrać opcję płatności dwuczęściowej. Pierwsza część płatności wyniesie 30% ceny całkowitej. Kwoty i terminy każdej wpłaty znajdziesz na ostatnim etapie procesu rezerwacji. W przypadku nie zapłacenia drugiej części kwoty za rezerwację rezerwacja zostanie anulowana. W takim przypadku wpłacona do tej pory kwota jest bezzwrotna. | Warunki: Twoja rezerwacja jest bezpośrednią umową między Tobą a Oferentem Usług/Obiektem, dotyczącą rezerwacji pobytu zgodnie z wybraną Usługą/wybranym Obiektem lub bezpośrednią umową między Tobą a Organizatorem turystyki, dotyczącą rezerwacji Usługi Hotel+Lot. Stroną odpowiedzialną za prawidłowe wykonanie umowy w odniesieniu do rezerwacji pobytu w obiekcie jest Oferent lub Organizator turystyki w przypadku rezerwacji Usługi Hotel+Lot, których dane znajdziesz w sekcji Informacja dla konsumentów. W odniesieniu do rezerwacji usług Oferenta obowiązuje Regulamin Serwisu Travelist , Regulamin Środków i Kart Podarunkowych , Regulamin Usługi Zakwaterowania oraz Warunki Rezygnacji . W odniesieniu do rezerwacji Usługi Hotel+Lot obowiązuje Regulamin Serwisu , Regulamin Travelist Hotel+Lot oraz Warunki Rezygnacji Usługi Hotel+Lot . Szczegółowe informacje na temat sposobu funkcjonowania serwisu znajdziesz w zakładce „Jak działamy” dostępnej tutaj . W przypadku Usługi Hotel+Lot Travelist działa jako agent Organizatora Turystyki. Transport nie jest wliczony w cenę. Secret Escapes Limited a company registered in England & Wales under number 07026107, registered office 88 Kingsway, London, WC2B 6AA. © Secret Escapes 2019;DLACZEGO WARTO? Hotel JUVENA SPA&Wellness to synonim luksusu i elegancji. Obiekt zlokalizowany jest w niewielkiej miejscowości nadmorskiej - Międzywodzie w otoczeniu lasu sosnowego i zaledwie 200 metrów od plaży. Goście korzystać tu mogą m.in z wykwintnej restauracji, baru przy basenie na dachu budynku, z którego rozpościera się niesamowity widok na okolicę czy nowoczesnego kompleksu wellness & spa. Co ważne - Hotel jest dla osób powyżej 12 lat. Obiekt oferuje wypoczynek w przestronnych pokojach z klimatyzacją i balkonem. W każdym znajduje się łazienka z prysznicem, suszarka do włosów, czajnik elektryczny, telewizor oraz Wi-Fi. ATRAKCJE OBIEKTU - basen wewnętrzny - basen zewnętrzny na dachu - jacuzzi - 3 sauny - grota solna - hammam - ścieżka Kneippa - siłownia - spa - masaże - zabiegi na twarz i ciało JEDZENIE I PICIE Hotel oferuje swoim gościom niezapomniane doznania kulinarne. Znajduje się tu elegancka restauracja Rosa Mare, cocktail bar Mesa, w którym organizowane są wieczory z muzyką, kawiarnia Gracja, ogródek, gdzie organizowane są m.in. ogniska czy biesiady grillowe oraz Sky bar przy basenie na dachu budynku.;Pokój 2-osobowy Standard / maks. 2 osoby dorosłe / Klimatyzowany pokój z 1 łóżkiem podwójnym lub 2 łóżkami pojedynczymi. Pow. ok. 23 m2. || Pokój Rodzinny / maks. 2 osoby dorosłe i maks. 2 dzieci || Pokój 2 os. Comfort / maks. 2 osoby dorosłe / Klimatyzowany pokój z 1 łóżkiem podwójnym lub 2 łóżkami pojedynczymi. Pow. ok. 25 m2. || Pokój 2 os. Standard / maks. 2 osoby dorosłe / Klimatyzowany pokój z 1 łóżkiem podwójnym lub 2 łóżkami pojedynczymi. Pow. ok. 23 m2. || Pokój rodzinny / maks. 4 osoby dorosłe / Dwa, dwuosobowe pokoje sąsiadujące ze sobą i połączone wewnętrznymi drzwiami - to idealna opcja dla rodzin, przyjaciół, grup planujących wspólny wypoczynek nas morzem. To dwa odrębne, komfortowo wyposażone pokoje hotelowe, które łączą ze sobą wewnętrzne drzwi. Pokoje położone są na ostatnim, czwartym piętrze hotelu. Standardowo, pokoje te przygotowane są dwoma osobnymi łóżkami, które na życzenie łączymy w łóżko małżeńskie. || Pokój 2-osobowy Comfort / maks. 2 osoby dorosłe / Klimatyzowany pokój z 1 łóżkiem podwójnym lub 2 łóżkami pojedynczymi. Pow. ok. 25 m2.;3.07.2026\n";
+
+/* ================= HELPERS ================= */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtPln = n => new Intl.NumberFormat('pl-PL', {maximumFractionDigits: 0}).format(Math.round(n));
+const clean = s => String(s ?? '').replace(/\s+/g, ' ').replace(/\*\*/g, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').trim();
+
+// Naprawa ocen zamienionych przez Excela na daty: "4.lip" -> 4.7
+const PL_MONTHS = {sty:1,lut:2,mar:3,kwi:4,maj:5,cze:6,lip:7,sie:8,wrz:9,'paź':10,paz:10,lis:11,gru:12};
+function parseRating(v){
+  if (v == null || v === '') return null;
+  const s = String(v).trim().toLowerCase().replace(',', '.');
+  const asNum = parseFloat(s);
+  if (!isNaN(asNum) && /^[\d.]+$/.test(s)) return asNum;
+  let m = s.match(/^(\d+)[.\s-]*(sty|lut|mar|kwi|maj|cze|lip|sie|wrz|paź|paz|lis|gru)/);
+  if (m) return parseInt(m[1], 10) + PL_MONTHS[m[2]] / 10;
+  m = s.match(/^(sty|lut|mar|kwi|maj|cze|lip|sie|wrz|paź|paz|lis|gru)[.\s-]*(\d+)/);
+  if (m) return parseInt(m[2], 10) + PL_MONTHS[m[1]] / 10;
+  return null;
+}
+const parseNum = v => {
+  if (v == null || v === '') return null;
+  const n = parseFloat(String(v).replace(/\s/g, '').replace(',', '.'));
+  return isNaN(n) ? null : n;
+};
+
+function toast(msg){
+  const t = $('#toast');
+  t.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>' + esc(msg);
+  t.classList.add('on');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove('on'), 2400);
+}
+function copyText(txt, msg){
+  const done = () => toast(msg || 'Skopiowano do schowka');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt).then(done).catch(() => fallbackCopy(txt, done));
+  } else fallbackCopy(txt, done);
+}
+function fallbackCopy(txt, done){
+  const ta = document.createElement('textarea');
+  ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); done(); } catch(e) { toast('Nie udało się skopiować'); }
+  ta.remove();
+}
+
+/* ================= AMENITY ICONS (inline SVG) ================= */
+const AM_ICONS = [
+  [/basen/i,        '<path d="M2 15c1.5 1.2 3 1.2 4.5 0s3-1.2 4.5 0 3 1.2 4.5 0 3-1.2 4.5 0"/><path d="M2 19c1.5 1.2 3 1.2 4.5 0s3-1.2 4.5 0 3 1.2 4.5 0 3-1.2 4.5 0"/><path d="M7 12V6a2 2 0 0 1 4 0"/><path d="M13 12V6a2 2 0 0 1 4 0"/><path d="M7 9h6"/>'],
+  [/spa/i,          '<path d="M12 21c-5 0-8-3.5-8-8 2.5 0 5 1 6.5 2.8C10 12 10.6 7.5 12 4c1.4 3.5 2 8 1.5 11.8C15 14 17.5 13 20 13c0 4.5-3 8-8 8z"/>'],
+  [/sauna/i,        '<path d="M9 4c-1 1.3-1 2.7 0 4s1 2.7 0 4"/><path d="M14 4c-1 1.3-1 2.7 0 4s1 2.7 0 4"/><path d="M4 16h16v4H4z"/>'],
+  [/jacuzzi/i,      '<circle cx="8" cy="5" r="1.6"/><path d="M4 12h16v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-6z"/><path d="M13 6c.8.8.8 1.6 0 2.4M16.5 5c.8.8.8 1.6 0 2.4"/>'],
+  [/pupil|zwierz/i, '<circle cx="6" cy="9" r="1.8"/><circle cx="18" cy="9" r="1.8"/><circle cx="9.5" cy="5.5" r="1.8"/><circle cx="14.5" cy="5.5" r="1.8"/><path d="M12 11c-2.8 0-5.5 2.6-5.5 5 0 1.6 1.2 2.6 2.7 2.6 1 0 1.8-.6 2.8-.6s1.8.6 2.8.6c1.5 0 2.7-1 2.7-2.6 0-2.4-2.7-5-5.5-5z"/>'],
+  [/parking/i,      '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M10 16v-8h3a2.5 2.5 0 0 1 0 5h-3"/>'],
+  [/restaurac|room service/i, '<path d="M7 3v7a2 2 0 0 0 4 0V3M9 3v18"/><path d="M17 3c-1.5 1-2.5 3.2-2.5 6 0 2 1 3 2.5 3v9"/>'],
+  [/siłown|fitness/i, '<path d="M7 8v8M4 10v4M17 8v8M20 10v4M7 12h10"/>'],
+  [/wi-?fi|internet/i, '<path d="M4 9.5C8.5 5.5 15.5 5.5 20 9.5"/><path d="M7 13c3-2.6 7-2.6 10 0"/><circle cx="12" cy="17" r="1.4" fill="currentColor"/>'],
+  [/bar\b/i,        '<path d="M5 4h14l-7 8z"/><path d="M12 12v6M8 21h8"/>'],
+  [/rower/i,        '<circle cx="6" cy="16" r="3.5"/><circle cx="18" cy="16" r="3.5"/><path d="M6 16l4-8h5l3 8M10 8h4"/>'],
+  [/wind/i,         '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M12 3v18M8.5 9l1.5-2 1.5 2M13.5 15l1.5 2 1.5-2"/>'],
+  [/niepełnospraw/i,'<circle cx="12" cy="5" r="1.8"/><path d="M12 8v5h5l2 6"/><path d="M9.5 11a5 5 0 1 0 6 7"/>'],
+  [/recepcja/i,     '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>'],
+  [/bagaż/i,        '<rect x="6" y="7" width="12" height="13" rx="2"/><path d="M9 7V5a3 3 0 0 1 6 0v2M10 11v5M14 11v5"/>'],
+  [/niepal/i,       '<path d="M4 4l16 16"/><path d="M3 15h10M17 15h4M3 15v3h14"/>'],
+];
+const AM_DEFAULT = '<circle cx="12" cy="12" r="3.2"/>';
+function amIcon(name){
+  const hit = AM_ICONS.find(([re]) => re.test(name));
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' + (hit ? hit[1] : AM_DEFAULT) + '</svg>';
+}
+const starStr = n => '★'.repeat(Math.max(0, Math.round(n)));
+
+/* ================= STATE ================= */
+const state = {
+  offers: [],
+  filtered: [],
+  bounds: {min: 0, max: 1000},
+  filters: {q:'', regions:new Set(), stars:new Set(), pMin:null, pMax:null, rMin:0, dMin:0, amenities:new Set(), showFinished:false},
+  sort: 'price-asc',
+  activeId: null
+};
+let map, cluster, markersById = new Map();
+
+/* ================= CSV PARSING ================= */
+function parseCsv(text){
+  const firstLine = text.slice(0, text.indexOf('\n'));
+  const delim = (firstLine.split(';').length >= firstLine.split(',').length) ? ';' : ',';
+  const res = Papa.parse(text.replace(/^\uFEFF/, ''), {header:true, delimiter:delim, skipEmptyLines:'greedy'});
+  const rows = res.data.filter(r => r.hotel_name || r.offer_id);
+  return rows.map((r, i) => {
+    const lat = parseNum(r.lat ?? r.latitude ?? r.szerokosc);
+    const lng = parseNum(r.lng ?? r.lon ?? r.longitude ?? r.dlugosc);
+    const id = clean(r.offer_id) || 'row' + i;
+    const o = {
+      id,
+      url: clean(r.url),
+      name: clean(r.hotel_name) || 'Obiekt bez nazwy',
+      tagline: clean(r.marketing_title),
+      country: clean(r.country) || 'Polska',
+      region: clean(r.region),
+      city: clean(r.city),
+      street: clean(r.street),
+      postal: clean(r.postal_code),
+      stars: parseNum(r.star_rating),
+      price: parseNum(r.price_pln),
+      oldPrice: parseNum(r.old_price_pln),
+      discount: parseNum(r.discount_pct),
+      priceNote: clean(r.price_note),
+      rating: parseRating(r.rating_avg),
+      ratingCount: parseNum(r.rating_count),
+      finished: String(r.is_finished).trim().toLowerCase() === 'true',
+      summary: clean(r.summary),
+      amenities: String(r.amenities ?? '').split('|').map(clean).filter(Boolean),
+      lat, lng,
+      geoApprox: false
+    };
+    if ((o.lat == null || o.lng == null) && FALLBACK_COORDS[id]) {
+      [o.lat, o.lng] = FALLBACK_COORDS[id];
+      o.geoApprox = true; // do skorygowania przez geokoder
+    }
+    o.search = (o.name + ' ' + o.city + ' ' + o.region + ' ' + o.tagline).toLowerCase();
+    return o;
+  });
+}
+
+/* ================= FILTER UI BUILD ================= */
+function buildFilterUI(){
+  const f = state.filters;
+  // regions
+  const regions = [...new Set(state.offers.map(o => o.region).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pl'));
+  $('#regionChips').innerHTML = regions.map(r =>
+    `<button class="chip" data-f="regions" data-v="${esc(r)}">${esc(r)}</button>`).join('');
+  // stars
+  const stars = [...new Set(state.offers.map(o => o.stars).filter(s => s > 0))].sort((a,b)=>a-b);
+  $('#starChips').innerHTML = stars.map(s =>
+    `<button class="chip" data-f="stars" data-v="${s}">${s} <span class="st">${starStr(s)}</span></button>`).join('');
+  // price bounds
+  const prices = state.offers.map(o => o.price).filter(p => p != null);
+  const lo = prices.length ? Math.floor(Math.min(...prices)/10)*10 : 0;
+  const hi = prices.length ? Math.ceil(Math.max(...prices)/10)*10 : 1000;
+  state.bounds = {min: lo, max: Math.max(hi, lo+10)};
+  const pMinEl = $('#pMin'), pMaxEl = $('#pMax');
+  pMinEl.min = pMaxEl.min = state.bounds.min;
+  pMinEl.max = pMaxEl.max = state.bounds.max;
+  pMinEl.step = pMaxEl.step = 10;
+  if (f.pMin == null || f.pMin < state.bounds.min) f.pMin = state.bounds.min;
+  if (f.pMax == null || f.pMax > state.bounds.max) f.pMax = state.bounds.max;
+  pMinEl.value = f.pMin; pMaxEl.value = f.pMax;
+  // rating chips
+  $('#ratingChips').innerHTML = [['0','Dowolna'],['4','4,0+'],['4.5','4,5+'],['4.7','4,7+']].map(([v,l]) =>
+    `<button class="chip${(+v===f.rMin)?' on':''}" data-f="rating" data-v="${v}">${l}</button>`).join('');
+  // discount chips
+  $('#discountChips').innerHTML = [['0','Dowolny'],['30','−30%+'],['40','−40%+'],['50','−50%+']].map(([v,l]) =>
+    `<button class="chip${(+v===f.dMin)?' on':''}" data-f="discount" data-v="${v}">${l}</button>`).join('');
+  // amenities by frequency
+  const freq = new Map();
+  state.offers.forEach(o => o.amenities.forEach(a => freq.set(a, (freq.get(a)||0)+1)));
+  const ams = [...freq.entries()].sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0],'pl')).slice(0, 18);
+  $('#amenityChips').innerHTML = ams.map(([a]) =>
+    `<button class="chip" data-f="amenities" data-v="${esc(a)}">${amIcon(a)}${esc(a)}</button>`).join('');
+  // restore chip states from filters
+  $$('#filters .chip').forEach(ch => {
+    const set = {regions:f.regions, stars:f.stars, amenities:f.amenities}[ch.dataset.f];
+    if (set && set.has(ch.dataset.f === 'stars' ? +ch.dataset.v + '' : ch.dataset.v)) ch.classList.add('on');
+    if (ch.dataset.f === 'stars' && f.stars.has(ch.dataset.v)) ch.classList.add('on');
+  });
+  $('#showFinished').checked = f.showFinished;
+  updateRangeUI();
+}
+
+function updateRangeUI(){
+  const {min, max} = state.bounds, f = state.filters;
+  const span = Math.max(1, max - min);
+  const l = ((f.pMin - min) / span) * 100, r = ((f.pMax - min) / span) * 100;
+  const fill = $('#rangeFill');
+  fill.style.left = l + '%'; fill.style.width = Math.max(0, r - l) + '%';
+  $('#pMinLbl').textContent = fmtPln(f.pMin) + ' zł';
+  $('#pMaxLbl').textContent = fmtPln(f.pMax) + ' zł';
+}
+
+/* ================= FILTERING + RENDER ================= */
+function applyFilters(){
+  const f = state.filters;
+  state.filtered = state.offers.filter(o => {
+    if (!f.showFinished && o.finished) return false;
+    if (f.q && !o.search.includes(f.q)) return false;
+    if (f.regions.size && !f.regions.has(o.region)) return false;
+    if (f.stars.size && !f.stars.has(String(o.stars))) return false;
+    if (o.price != null && (o.price < f.pMin || o.price > f.pMax)) return false;
+    if (f.rMin > 0 && !(o.rating >= f.rMin)) return false;
+    if (f.dMin > 0 && !(o.discount >= f.dMin)) return false;
+    for (const a of f.amenities) if (!o.amenities.includes(a)) return false;
+    return true;
+  });
+  sortOffers();
+  renderCount();
+  renderList();
+  renderMarkers();
+  renderActiveBadge();
+  syncHash();
+}
+function sortOffers(){
+  const s = state.sort, arr = state.filtered;
+  const by = {
+    'price-asc':  (a,b) => (a.price??1e9) - (b.price??1e9),
+    'price-desc': (a,b) => (b.price??-1) - (a.price??-1),
+    'disc-desc':  (a,b) => (b.discount??-1) - (a.discount??-1),
+    'rate-desc':  (a,b) => (b.rating??-1) - (a.rating??-1) || (b.ratingCount??0)-(a.ratingCount??0),
+    'name-asc':   (a,b) => a.name.localeCompare(b.name,'pl')
+  }[s];
+  if (by) arr.sort(by);
+}
+function activeFilterCount(){
+  const f = state.filters, b = state.bounds;
+  let n = f.regions.size + f.stars.size + f.amenities.size;
+  if (f.rMin > 0) n++;
+  if (f.dMin > 0) n++;
+  if (f.pMin > b.min || f.pMax < b.max) n++;
+  if (f.showFinished) n++;
+  return n;
+}
+function renderActiveBadge(){
+  const n = activeFilterCount();
+  const b = $('#fbadge');
+  b.textContent = n; b.classList.toggle('on', n > 0);
+  $$('.reset-link').forEach(r => {
+    const f = state.filters, key = r.dataset.reset;
+    const on = key==='regions'? f.regions.size : key==='stars'? f.stars.size : key==='amenities'? f.amenities.size
+      : key==='rating'? f.rMin>0 : key==='discount'? f.dMin>0
+      : key==='price'? (f.pMin>state.bounds.min || f.pMax<state.bounds.max) : false;
+    r.classList.toggle('on', !!on);
+  });
+}
+function renderCount(){
+  const total = state.offers.filter(o => state.filters.showFinished || !o.finished).length;
+  $('#count').innerHTML = `<b>${state.filtered.length}</b> z ${total} ofert`;
+}
+
+function priceBarHtml(o, popup){
+  return `<div class="pricebar">
+    ${o.price != null ? `<span class="now" title="${esc(o.priceNote)}">${fmtPln(o.price)} <small>zł</small></span>` : ''}
+    ${o.oldPrice != null ? `<span class="old">${fmtPln(o.oldPrice)} zł</span>` : ''}
+    <span class="per">/ 2 os. / noc</span>
+    ${o.rating != null ? `<span class="rate"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z"/></svg>${o.rating.toFixed(1).replace('.', ',')}${o.ratingCount ? ` <small>(${fmtPln(o.ratingCount)})</small>` : ''}</span>` : ''}
+  </div>`;
+}
+function actionsHtml(o){
+  return `<div class="card-actions">
+    <button class="ca-btn primary" data-act="fly" data-id="${esc(o.id)}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      Na mapie</button>
+    ${o.url ? `<a class="ca-btn" href="${esc(o.url)}" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/></svg>
+      Oferta</a>
+    <button class="ca-btn" data-act="copy" data-id="${esc(o.id)}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      Kopiuj</button>` : ''}
+  </div>`;
+}
+function renderList(){
+  const el = $('#list');
+  if (!state.filtered.length){
+    el.innerHTML = `<div class="empty">
+      <div class="big">Brak ofert dla tych kryteriów</div>
+      <div>Poluzuj filtry albo wyczyść je wszystkie, aby zobaczyć pełną listę.</div>
+      <button class="btn-outline" id="clearAll">Wyczyść wszystkie filtry</button>
+    </div>`;
+    return;
+  }
+  el.innerHTML = state.filtered.map(o => {
+    const amsShown = o.amenities.slice(0, 5);
+    const rest = o.amenities.length - amsShown.length;
+    return `<article class="card${o.finished ? ' finished' : ''}${o.id === state.activeId ? ' active' : ''}" data-id="${esc(o.id)}" id="card-${esc(o.id)}">
+      ${o.lat == null ? `<span class="geo-wait">lokalizuję…</span>` : ''}
+      <div class="card-top">
+        <h3>${esc(o.name)}</h3>
+        ${o.finished ? `<span class="badge-fin">zakończona</span>` : (o.discount ? `<span class="badge-off">−${Math.round(o.discount)}%</span>` : '')}
+      </div>
+      ${o.tagline ? `<p class="tagline">${esc(o.tagline)}</p>` : ''}
+      <div class="loc">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <span>${esc(o.city)}${o.region ? `, ${esc(o.region)}` : ''}</span>
+        ${o.stars ? `<span class="sep">·</span><span class="stars" title="Kategoria ${o.stars}">${starStr(o.stars)}</span>` : ''}
+      </div>
+      ${priceBarHtml(o)}
+      ${o.amenities.length ? `<div class="ams">
+        ${amsShown.map(a => `<span class="am">${amIcon(a)}${esc(a)}</span>`).join('')}
+        ${rest > 0 ? `<span class="am more">+${rest}</span>` : ''}
+      </div>` : ''}
+      ${actionsHtml(o)}
+    </article>`;
+  }).join('');
+}
+
+/* ================= MAP ================= */
+function initMap(){
+  map = L.map('map', {zoomControl: false, worldCopyJump: true}).setView([52.1, 19.3], 6);
+  L.control.zoom({position: 'topright'}).addTo(map);
+  L.tileLayer(CONFIG.tileUrl, {attribution: CONFIG.tileAttribution, maxZoom: CONFIG.maxTileZoom}).addTo(map);
+  cluster = L.markerClusterGroup({
+    maxClusterRadius: 46,
+    showCoverageOnHover: false,
+    iconCreateFunction: c => {
+      const n = c.getChildCount();
+      const size = n < 10 ? 38 : n < 50 ? 44 : 52;
+      return L.divIcon({html: `<div class="cluster" style="width:${size}px;height:${size}px">${n}</div>`, className: 'pin-wrap', iconSize: [size, size]});
+    }
+  });
+  map.addLayer(cluster);
+}
+function markerHtml(o){
+  return `<div class="pin${o.id === state.activeId ? ' active' : ''}" data-id="${esc(o.id)}">${o.price != null ? fmtPln(o.price) + ' zł' : esc(o.city || '•')}</div>`;
+}
+function popupHtml(o){
+  return `<div class="pop">
+    <h4>${esc(o.name)}</h4>
+    <div class="ploc">
+      <span>${esc([o.street, o.city].filter(Boolean).join(', '))}</span>
+      ${o.stars ? `<span class="stars">${starStr(o.stars)}</span>` : ''}
+    </div>
+    ${o.summary ? `<p class="psum">${esc(o.summary)}</p>` : ''}
+    ${priceBarHtml(o, true)}
+    ${actionsHtml(o)}
+  </div>`;
+}
+function renderMarkers(){
+  cluster.clearLayers();
+  markersById.clear();
+  const pts = [];
+  state.filtered.forEach(o => {
+    if (o.lat == null || o.lng == null) return;
+    const m = L.marker([o.lat, o.lng], {
+      icon: L.divIcon({html: markerHtml(o), className: 'pin-wrap', iconSize: null, iconAnchor: [0, 0]}),
+      riseOnHover: true, title: o.name, alt: o.name
+    });
+    m.bindPopup(popupHtml(o), {closeButton: true, autoPanPadding: [40, 40]});
+    m.on('click', () => setActive(o.id, {scrollList: true}));
+    m.on('mouseover', () => hotCard(o.id, true));
+    m.on('mouseout', () => hotCard(o.id, false));
+    markersById.set(o.id, m);
+    cluster.addLayer(m);
+    pts.push([o.lat, o.lng]);
+  });
+  if ($('#autoFit').checked && pts.length){
+    map.fitBounds(L.latLngBounds(pts), {padding: [56, 56], maxZoom: 13});
+  }
+  const missing = state.filtered.filter(o => o.lat == null).length;
+  const hint = $('#mapHint');
+  if (missing > 0){
+    hint.textContent = `${missing} ${missing === 1 ? 'oferta czeka' : 'ofert czeka'} na ustalenie lokalizacji…`;
+    hint.classList.add('on');
+  } else hint.classList.remove('on');
+}
+function setActive(id, opts = {}){
+  state.activeId = id;
+  $$('.card').forEach(c => c.classList.toggle('active', c.dataset.id === id));
+  $$('.pin').forEach(p => p.classList.toggle('active', p.dataset.id === id));
+  if (opts.scrollList){
+    const card = $('#card-' + CSS.escape(id));
+    if (card) card.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+  }
+}
+function hotCard(id, on){
+  const card = $('#card-' + CSS.escape(id));
+  if (card) card.classList.toggle('hot', on);
+}
+function flyToOffer(id){
+  const o = state.offers.find(x => x.id === id);
+  if (!o) return;
+  if (o.lat == null){ toast('Lokalizacja tego obiektu jest jeszcze ustalana'); return; }
+  document.body.classList.add('mapmode'); syncViewToggle();
+  map.invalidateSize();
+  setActive(id);
+  const target = Math.max(map.getZoom(), 12);
+  map.flyTo([o.lat, o.lng], target, {duration: .8});
+  const m = markersById.get(id);
+  if (m) setTimeout(() => { cluster.zoomToShowLayer(m, () => m.openPopup()); }, 850);
+}
+
+/* ================= GEOCODING (Nominatim) ================= */
+let geoCache = {};
+try { geoCache = JSON.parse(localStorage.getItem(CONFIG.geoCacheKey) || '{}'); } catch(e) {}
+function geoSave(){ try { localStorage.setItem(CONFIG.geoCacheKey, JSON.stringify(geoCache)); } catch(e) {} }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+async function nominatim(q){
+  const url = CONFIG.nominatim + '?format=jsonv2&limit=1&accept-language=pl&q=' + encodeURIComponent(q);
+  const res = await fetch(url, {headers: {'Accept': 'application/json'}});
+  if (!res.ok) throw new Error('http ' + res.status);
+  const j = await res.json();
+  return (j && j[0]) ? {lat: +j[0].lat, lng: +j[0].lon} : null;
+}
+async function geocodeAll(){
+  const todo = state.offers.filter(o => o.lat == null || o.geoApprox);
+  if (!todo.length) return;
+  const pill = $('#geoStatus'), txt = $('#geoStatusTxt');
+  let done = 0, failed = 0;
+  pill.classList.add('on');
+  for (const o of todo){
+    txt.textContent = `Ustalam lokalizacje… ${done + 1}/${todo.length}`;
+    const variants = [
+      [o.street, o.postal, o.city, o.country].filter(Boolean).join(', '),
+      [o.postal, o.city, o.country].filter(Boolean).join(', '),
+      [o.city, o.region, o.country].filter(Boolean).join(', ')
+    ].filter(v => v.length > 3);
+    let hit = null, cachedOnly = true;
+    for (const v of variants){
+      const key = v.toLowerCase();
+      if (key in geoCache){ if (geoCache[key]) { hit = geoCache[key]; break; } continue; }
+      cachedOnly = false;
+      try {
+        hit = await nominatim(v);
+        geoCache[key] = hit;
+        await sleep(CONFIG.geoDelayMs);
+      } catch(e){ break; } // sieć niedostępna — przerwij warianty
+      if (hit) break;
+    }
+    if (hit){
+      const changed = o.lat !== hit.lat || o.lng !== hit.lng;
+      o.lat = hit.lat; o.lng = hit.lng; o.geoApprox = false;
+      if (changed){
+        const m = markersById.get(o.id);
+        if (m) m.setLatLng([o.lat, o.lng]); else refreshSoon();
+      }
+      if (!cachedOnly) geoSave();
+    } else if (!o.geoApprox) failed++;
+    done++;
+  }
+  pill.classList.remove('on');
+  refreshSoon();
+  if (failed) toast(`Nie udało się zlokalizować ${failed} ${failed === 1 ? 'oferty' : 'ofert'}`);
+}
+let refreshT = null;
+function refreshSoon(){ clearTimeout(refreshT); refreshT = setTimeout(applyFilters, 250); }
+
+/* ================= URL HASH (udostępnianie widoku) ================= */
+let hashT = null;
+function syncHash(){
+  clearTimeout(hashT);
+  hashT = setTimeout(() => {
+    const f = state.filters, b = state.bounds, p = new URLSearchParams();
+    if (f.q) p.set('q', f.q);
+    if (f.regions.size) p.set('reg', [...f.regions].join('~'));
+    if (f.stars.size) p.set('st', [...f.stars].join('~'));
+    if (f.pMin > b.min) p.set('pmin', f.pMin);
+    if (f.pMax < b.max) p.set('pmax', f.pMax);
+    if (f.rMin > 0) p.set('rmin', f.rMin);
+    if (f.dMin > 0) p.set('dmin', f.dMin);
+    if (f.amenities.size) p.set('am', [...f.amenities].join('~'));
+    if (f.showFinished) p.set('fin', '1');
+    if (state.sort !== 'price-asc') p.set('sort', state.sort);
+    const s = p.toString();
+    history.replaceState(null, '', s ? '#' + s : location.pathname + location.search);
+  }, 150);
+}
+function loadHash(){
+  if (!location.hash || location.hash.length < 2) return;
+  const p = new URLSearchParams(location.hash.slice(1));
+  const f = state.filters;
+  f.q = p.get('q') || '';
+  if (p.get('reg')) f.regions = new Set(p.get('reg').split('~'));
+  if (p.get('st')) f.stars = new Set(p.get('st').split('~'));
+  if (p.get('pmin')) f.pMin = +p.get('pmin');
+  if (p.get('pmax')) f.pMax = +p.get('pmax');
+  if (p.get('rmin')) f.rMin = +p.get('rmin');
+  if (p.get('dmin')) f.dMin = +p.get('dmin');
+  if (p.get('am')) f.amenities = new Set(p.get('am').split('~'));
+  f.showFinished = p.get('fin') === '1';
+  if (p.get('sort')) state.sort = p.get('sort');
+  $('#q').value = f.q;
+  $('#qClear').classList.toggle('on', !!f.q);
+  $('#sort').value = state.sort;
+}
+
+/* ================= DATA LOADING ================= */
+function ingest(text, sourceLabel){
+  const offers = parseCsv(text);
+  if (!offers.length){ toast('Nie znaleziono ofert w pliku CSV'); return false; }
+  state.offers = offers;
+  state.activeId = null;
+  buildFilterUI();
+  applyFilters();
+  if (sourceLabel) toast(`Wczytano ${offers.length} ${offers.length === 1 ? 'ofertę' : (offers.length < 5 ? 'oferty' : 'ofert')} (${sourceLabel})`);
+  geocodeAll();
+  return true;
+}
+async function boot(){
+  loadHash();
+  initMap();
+  let text = null, label = null;
+  try {
+    const res = await fetch(CONFIG.csvUrl, {cache: 'no-store'});
+    if (res.ok){ text = await res.text(); label = null; }
+  } catch(e){}
+  if (!text && EMBEDDED_CSV){ text = EMBEDDED_CSV; label = 'dane przykładowe'; }
+  if (text) ingest(text, label);
+  else $('#list').innerHTML = `<div class="empty"><div class="big">Brak danych</div>
+    <div>Umieść plik <code>offers.csv</code> obok <code>index.html</code> albo przeciągnij plik CSV na to okno.</div></div>`;
+}
+
+/* ================= EVENTS ================= */
+// search
+$('#q').addEventListener('input', e => {
+  state.filters.q = e.target.value.trim().toLowerCase();
+  $('#qClear').classList.toggle('on', !!e.target.value);
+  applyFilters();
+});
+$('#qClear').addEventListener('click', () => {
+  $('#q').value = ''; state.filters.q = ''; $('#qClear').classList.remove('on'); applyFilters(); $('#q').focus();
+});
+// sort
+$('#sort').addEventListener('change', e => { state.sort = e.target.value; applyFilters(); });
+// filters collapse
+$('#filterToggle').addEventListener('click', () => {
+  const el = $('#filters');
+  el.classList.toggle('hidden');
+  $('#filterToggle').setAttribute('aria-expanded', String(!el.classList.contains('hidden')));
+});
+// chips + resets (delegowane)
+$('#filters').addEventListener('click', e => {
+  const chip = e.target.closest('.chip');
+  if (chip){
+    const f = state.filters, key = chip.dataset.f, v = chip.dataset.v;
+    if (key === 'rating' || key === 'discount'){
+      const prop = key === 'rating' ? 'rMin' : 'dMin';
+      f[prop] = +v;
+      chip.parentElement.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === chip));
+    } else {
+      const set = {regions: f.regions, stars: f.stars, amenities: f.amenities}[key];
+      set.has(v) ? set.delete(v) : set.add(v);
+      chip.classList.toggle('on');
+    }
+    applyFilters();
+    return;
+  }
+  const reset = e.target.closest('.reset-link');
+  if (reset){
+    const f = state.filters, k = reset.dataset.reset;
+    if (k === 'regions') f.regions.clear();
+    if (k === 'stars') f.stars.clear();
+    if (k === 'amenities') f.amenities.clear();
+    if (k === 'rating') f.rMin = 0;
+    if (k === 'discount') f.dMin = 0;
+    if (k === 'price'){ f.pMin = state.bounds.min; f.pMax = state.bounds.max; $('#pMin').value = f.pMin; $('#pMax').value = f.pMax; updateRangeUI(); }
+    buildChipStates();
+    applyFilters();
+  }
+});
+function buildChipStates(){
+  const f = state.filters;
+  $$('#filters .chip').forEach(ch => {
+    const k = ch.dataset.f, v = ch.dataset.v;
+    if (k === 'rating') ch.classList.toggle('on', +v === f.rMin);
+    else if (k === 'discount') ch.classList.toggle('on', +v === f.dMin);
+    else {
+      const set = {regions: f.regions, stars: f.stars, amenities: f.amenities}[k];
+      ch.classList.toggle('on', set ? set.has(v) : false);
+    }
+  });
+}
+// price sliders
+function onRange(){
+  const f = state.filters;
+  let a = +$('#pMin').value, b = +$('#pMax').value;
+  if (a > b) [a, b] = [b, a];
+  f.pMin = a; f.pMax = b;
+  updateRangeUI();
+  applyFilters();
+}
+$('#pMin').addEventListener('input', onRange);
+$('#pMax').addEventListener('input', onRange);
+// finished toggle
+$('#showFinished').addEventListener('change', e => { state.filters.showFinished = e.target.checked; applyFilters(); });
+// autofit re-trigger
+$('#autoFit').addEventListener('change', () => { if ($('#autoFit').checked) renderMarkers(); });
+// list interactions (delegowane)
+$('#list').addEventListener('click', e => {
+  if (e.target.id === 'clearAll'){
+    const f = state.filters;
+    f.q = ''; $('#q').value = ''; $('#qClear').classList.remove('on');
+    f.regions.clear(); f.stars.clear(); f.amenities.clear();
+    f.rMin = 0; f.dMin = 0; f.showFinished = false; $('#showFinished').checked = false;
+    f.pMin = state.bounds.min; f.pMax = state.bounds.max;
+    $('#pMin').value = f.pMin; $('#pMax').value = f.pMax; updateRangeUI();
+    buildChipStates(); applyFilters();
+    return;
+  }
+  const btn = e.target.closest('[data-act]');
+  if (btn){
+    const id = btn.dataset.id;
+    if (btn.dataset.act === 'fly') flyToOffer(id);
+    if (btn.dataset.act === 'copy'){
+      const o = state.offers.find(x => x.id === id);
+      if (o && o.url) copyText(o.url, 'Link do oferty skopiowany — wklej klientowi');
+    }
+    return;
+  }
+  const card = e.target.closest('.card');
+  if (card) setActive(card.dataset.id);
+});
+$('#list').addEventListener('mouseover', e => {
+  const card = e.target.closest('.card');
+  if (!card) return;
+  const pin = document.querySelector(`.pin[data-id="${CSS.escape(card.dataset.id)}"]`);
+  if (pin) pin.classList.add('hot');
+});
+$('#list').addEventListener('mouseout', e => {
+  const card = e.target.closest('.card');
+  if (!card) return;
+  const pin = document.querySelector(`.pin[data-id="${CSS.escape(card.dataset.id)}"]`);
+  if (pin) pin.classList.remove('hot');
+});
+// popup buttons (mapa jest poza #list)
+$('#map').addEventListener('click', e => {
+  const btn = e.target.closest('[data-act]');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  if (btn.dataset.act === 'copy'){
+    const o = state.offers.find(x => x.id === id);
+    if (o && o.url) copyText(o.url, 'Link do oferty skopiowany — wklej klientowi');
+  }
+  if (btn.dataset.act === 'fly') flyToOffer(id);
+});
+// topbar
+$('#btnShare').addEventListener('click', () => copyText(location.href, 'Link do widoku z filtrami skopiowany'));
+$('#btnCsv').addEventListener('click', () => $('#fileInput').click());
+$('#fileInput').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const r = new FileReader();
+  r.onload = () => ingest(r.result, file.name);
+  r.readAsText(file, 'utf-8');
+  e.target.value = '';
+});
+// help modal
+$('#btnHelp').addEventListener('click', () => $('#helpModal').classList.add('on'));
+$('#helpModal').addEventListener('click', e => {
+  if (e.target.id === 'helpModal' || e.target.closest('[data-close]')) $('#helpModal').classList.remove('on');
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') $('#helpModal').classList.remove('on'); });
+// drag & drop CSV
+let dragDepth = 0;
+window.addEventListener('dragenter', e => {
+  if (e.dataTransfer && [...e.dataTransfer.types].includes('Files')){ dragDepth++; $('#dropzone').classList.add('on'); }
+});
+window.addEventListener('dragleave', () => { if (--dragDepth <= 0){ dragDepth = 0; $('#dropzone').classList.remove('on'); } });
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('drop', e => {
+  e.preventDefault(); dragDepth = 0; $('#dropzone').classList.remove('on');
+  const file = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (!file) return;
+  if (!/\.csv$/i.test(file.name)){ toast('To nie jest plik CSV'); return; }
+  const r = new FileReader();
+  r.onload = () => ingest(r.result, file.name);
+  r.readAsText(file, 'utf-8');
+});
+// mobile view toggle
+function syncViewToggle(){
+  $('#viewToggleTxt').textContent = document.body.classList.contains('mapmode') ? 'Lista' : 'Mapa';
+}
+$('#viewToggle').addEventListener('click', () => {
+  document.body.classList.toggle('mapmode');
+  syncViewToggle();
+  if (document.body.classList.contains('mapmode')) setTimeout(() => map.invalidateSize(), 60);
+});
+
+boot();
+</script>
+</body>
+</html>
