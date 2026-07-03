@@ -8,31 +8,32 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23E4573D' d='M16 2a10.5 10.5 0 0 0-10.5 10.5C5.5 20 16 30 16 30s10.5-10 10.5-17.5A10.5 10.5 0 0 0 16 2zm0 14.6a4.1 4.1 0 1 1 0-8.2 4.1 4.1 0 0 1 0 8.2z'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,560;0,9..144,640;1,9..144,460&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,700;0,900;1,400;1,700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
 <style>
 :root{
-  --ink:#1e2534;         /* deep slate */
-  --ink-soft:#4c556a;
-  --ink-faint:#8b93a5;
-  --cream:#f8f3ea;       /* page background */
-  --paper:#fffdf8;       /* cards */
-  --line:#e6ddce;
-  --line-strong:#d5c9b4;
-  --coral:#e4573d;       /* Travelist accent */
-  --coral-deep:#c33f27;
-  --coral-tint:#fceee9;
-  --green:#1e7f5c;
-  --green-tint:#e6f3ec;
-  --gold:#c98a1b;
-  --shadow-sm:0 1px 2px rgba(30,37,52,.06),0 2px 8px rgba(30,37,52,.05);
-  --shadow-md:0 2px 6px rgba(30,37,52,.08),0 10px 28px rgba(30,37,52,.10);
-  --shadow-lg:0 6px 16px rgba(30,37,52,.12),0 24px 56px rgba(30,37,52,.16);
+  --ink:#3d4052;         /* granat Travelist */
+  --ink-soft:#575a6b;
+  --ink-faint:#9093a3;
+  --cream:#f1f2f6;       /* tło strony (theme-color travelist.pl) */
+  --paper:#ffffff;       /* karty */
+  --line:#e4e5ea;
+  --line-strong:#d4d5d8;
+  --coral:#ff5500;       /* pomarańcz Travelist (CTA) */
+  --coral-deep:#da5100;
+  --coral-tint:#fff1ea;
+  --red:#e0001d;         /* czerwień promocji */
+  --green:#00818f;       /* morski akcent */
+  --green-tint:#e3f4f6;
+  --gold:#f5af00;        /* gwiazdki */
+  --shadow-sm:0 1px 2px rgba(61,64,82,.06),0 2px 8px rgba(61,64,82,.05);
+  --shadow-md:0 2px 6px rgba(61,64,82,.08),0 10px 28px rgba(61,64,82,.10);
+  --shadow-lg:0 6px 16px rgba(61,64,82,.12),0 24px 56px rgba(61,64,82,.16);
   --r-sm:8px; --r-md:12px; --r-lg:16px;
   --panel-w:432px;
-  --font-body:"Instrument Sans",-apple-system,"Segoe UI",sans-serif;
-  --font-display:"Fraunces",Georgia,serif;
+  --font-body:"Lato",Arial,Helvetica,sans-serif;
+  --font-display:"Lato",Arial,Helvetica,sans-serif;
 }
 *{box-sizing:border-box}
 html,body{height:100%}
@@ -61,30 +62,30 @@ aside{
 }
 .brand{display:flex;align-items:baseline;gap:10px;min-width:0}
 .brand .logo{
-  font-family:var(--font-display);font-weight:640;font-style:italic;font-size:23px;letter-spacing:.2px;
-  color:var(--cream);white-space:nowrap;
+  font-family:var(--font-display);font-weight:900;font-size:22px;letter-spacing:-.02em;
+  color:#fff;white-space:nowrap;
 }
 .brand .logo .dot{color:var(--coral)}
 .brand .sub{
-  font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#aab2c4;
-  border:1px solid #3b4356;padding:3px 8px;border-radius:99px;white-space:nowrap;
+  font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#b9bcc9;
+  border:1px solid #565a6e;padding:3px 8px;border-radius:99px;white-space:nowrap;
 }
 .topbar .spacer{flex:1}
 .status-pill{
-  display:none;align-items:center;gap:8px;font-size:12.5px;color:#c9d0df;
-  background:#2a3245;border:1px solid #3b4356;border-radius:99px;padding:4px 12px;white-space:nowrap;
+  display:none;align-items:center;gap:8px;font-size:12.5px;color:#ced1dd;
+  background:#34374a;border:1px solid #565a6e;border-radius:99px;padding:4px 12px;white-space:nowrap;
 }
 .status-pill.on{display:flex}
 .status-pill .spin{
-  width:12px;height:12px;border-radius:50%;border:2px solid #4c566d;border-top-color:var(--coral);
+  width:12px;height:12px;border-radius:50%;border:2px solid #5a5d72;border-top-color:var(--coral);
   animation:spin .8s linear infinite;flex:none;
 }
 @keyframes spin{to{transform:rotate(360deg)}}
 .tb-btn{
-  display:flex;align-items:center;gap:7px;background:transparent;color:#d8dde8;border:1px solid #3b4356;
+  display:flex;align-items:center;gap:7px;background:transparent;color:#dbdde6;border:1px solid #565a6e;
   border-radius:var(--r-sm);padding:7px 12px;font-size:13px;font-weight:600;transition:all .15s;white-space:nowrap;
 }
-.tb-btn:hover{background:#2a3245;color:#fff;border-color:#4c566d}
+.tb-btn:hover{background:#34374a;color:#fff;border-color:#6a6e82}
 .tb-btn.accent{background:var(--coral);border-color:var(--coral);color:#fff}
 .tb-btn.accent:hover{background:var(--coral-deep);border-color:var(--coral-deep)}
 .tb-btn svg{width:15px;height:15px;flex:none}
@@ -105,9 +106,9 @@ aside{
 }
 #qClear:hover{background:var(--coral-tint);color:var(--coral)}
 #qClear.on{display:flex}
-.controlrow{display:flex;align-items:center;gap:10px;padding-bottom:12px}
+.controlrow{display:flex;align-items:center;gap:8px;padding-bottom:12px;flex-wrap:wrap}
 .count{font-size:13px;color:var(--ink-soft)}
-.count b{font-family:var(--font-display);font-weight:640;font-size:17px;color:var(--ink)}
+.count b{font-family:var(--font-display);font-weight:900;font-size:17px;color:var(--ink)}
 .controlrow .grow{flex:1}
 .sortwrap{position:relative}
 #sort{
@@ -119,11 +120,14 @@ aside{
   border-right:1.6px solid var(--ink-faint);border-bottom:1.6px solid var(--ink-faint);
   transform:translateY(-70%) rotate(45deg);
 }
-#filterToggle{
-  display:flex;align-items:center;gap:7px;border:1px solid var(--line-strong);background:var(--paper);
-  border-radius:var(--r-sm);padding:7px 11px;font-size:12.5px;font-weight:600;color:var(--ink-soft);
+#filterToggle,#clearFilters{
+  display:flex;align-items:center;gap:6px;border:1px solid var(--line-strong);background:var(--paper);
+  border-radius:var(--r-sm);padding:7px 10px;font-size:12.5px;font-weight:600;color:var(--ink-soft);
   box-shadow:var(--shadow-sm);transition:all .15s;
 }
+#clearFilters svg{width:13px;height:13px}
+#clearFilters:not(:disabled):hover{border-color:var(--coral);color:var(--coral)}
+#clearFilters:disabled{opacity:.4;cursor:default}
 #filterToggle svg{width:14px;height:14px}
 #filterToggle:hover{border-color:var(--coral);color:var(--coral)}
 #filterToggle .fbadge{
@@ -134,7 +138,7 @@ aside{
 
 /* ---------- filters ---------- */
 #filters{
-  flex:none;overflow-y:auto;max-height:46dvh;padding:2px 18px 6px;border-bottom:1px solid var(--line);
+  flex:none;overflow-y:auto;max-height:58dvh;padding:2px 18px 6px;border-bottom:1px solid var(--line);
   scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent;
 }
 #filters.hidden{display:none}
@@ -150,7 +154,7 @@ aside{
   font-size:12.5px;font-weight:600;color:var(--ink-soft);transition:all .13s;display:flex;align-items:center;gap:6px;
 }
 .chip:hover{border-color:var(--coral);color:var(--coral)}
-.chip.on{background:var(--ink);border-color:var(--ink);color:var(--cream)}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
 .chip .st{color:var(--gold);font-size:11px}
 .chip.on .st{color:#f0c869}
 .reset-link{
@@ -159,6 +163,10 @@ aside{
 }
 .reset-link.on{display:inline}
 .reset-link:hover{text-decoration:underline}
+#amenityChips{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+#amenityChips .chip{height:30px;padding:0 10px;font-size:11px;border-radius:8px;justify-content:flex-start;min-width:0}
+#amenityChips .chip .txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#amenityChips .chip svg{width:12px;height:12px;flex:none}
 
 /* dual range slider */
 .range-wrap{position:relative;height:26px;margin:4px 2px 6px}
@@ -204,10 +212,10 @@ aside{
 .card.finished{opacity:.62}
 .card-top{display:flex;align-items:flex-start;gap:10px}
 .card h3{
-  margin:0;font-family:var(--font-display);font-weight:640;font-size:16.5px;line-height:1.28;flex:1;letter-spacing:.1px;
+  margin:0;font-family:var(--font-display);font-weight:700;font-size:16px;line-height:1.3;flex:1;
 }
 .badge-off{
-  flex:none;background:var(--coral);color:#fff;font-size:12px;font-weight:700;border-radius:7px;
+  flex:none;background:var(--red);color:#fff;font-size:12px;font-weight:700;border-radius:7px;
   padding:3px 8px;letter-spacing:.02em;
 }
 .badge-fin{flex:none;background:var(--ink-faint);color:#fff;font-size:11px;font-weight:700;border-radius:7px;padding:3px 8px}
@@ -219,8 +227,8 @@ aside{
 .card .loc .stars{color:var(--gold);letter-spacing:1.5px;font-size:11.5px}
 .card .sep{color:var(--line-strong)}
 .pricebar{display:flex;align-items:baseline;gap:8px;margin-top:10px;flex-wrap:wrap}
-.pricebar .now{font-family:var(--font-display);font-weight:640;font-size:21px;line-height:1;color:var(--ink)}
-.pricebar .now small{font-size:13px;font-weight:560}
+.pricebar .now{font-family:var(--font-display);font-weight:900;font-size:21px;line-height:1;color:var(--ink)}
+.pricebar .now small{font-size:13px;font-weight:700}
 .pricebar .old{font-size:13px;color:var(--ink-faint);text-decoration:line-through}
 .pricebar .per{font-size:11.5px;color:var(--ink-faint)}
 .pricebar .rate{
@@ -228,7 +236,7 @@ aside{
   font-size:12.5px;font-weight:700;border-radius:8px;padding:3px 9px;
 }
 .pricebar .rate svg{width:12px;height:12px}
-.pricebar .rate small{font-weight:500;color:#4c8a70}
+.pricebar .rate small{font-weight:400;color:#33808d}
 .ams{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
 .am{
   display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--ink-soft);
@@ -245,7 +253,7 @@ aside{
 .ca-btn svg{width:13px;height:13px;flex:none}
 .ca-btn:hover{border-color:var(--ink);color:var(--ink)}
 .ca-btn.primary{background:var(--ink);border-color:var(--ink);color:var(--cream)}
-.ca-btn.primary:hover{background:#2c3549}
+.ca-btn.primary:hover{background:#4b4e63}
 .geo-wait{
   position:absolute;top:14px;right:14px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
   color:var(--ink-faint);background:var(--cream);border:1px dashed var(--line-strong);border-radius:99px;padding:2px 8px;
@@ -253,7 +261,7 @@ aside{
 .empty{
   text-align:center;padding:52px 20px;color:var(--ink-soft);
 }
-.empty .big{font-family:var(--font-display);font-style:italic;font-size:21px;color:var(--ink);margin-bottom:8px}
+.empty .big{font-family:var(--font-display);font-weight:700;font-size:20px;color:var(--ink);margin-bottom:8px}
 .empty button{margin-top:14px}
 .btn-outline{
   border:1px solid var(--line-strong);background:var(--paper);border-radius:var(--r-sm);
@@ -264,13 +272,13 @@ aside{
 /* ---------- map elements ---------- */
 .leaflet-container{font-family:var(--font-body)}
 .pin{
-  background:var(--ink);color:var(--cream);font-size:12.5px;font-weight:700;padding:5px 11px;border-radius:99px;
-  border:1.5px solid var(--cream);box-shadow:0 2px 6px rgba(30,37,52,.35);white-space:nowrap;
+  background:var(--ink);color:#fff;font-size:12.5px;font-weight:700;padding:5px 11px;border-radius:99px;
+  border:1.5px solid #fff;box-shadow:0 2px 6px rgba(61,64,82,.35);white-space:nowrap;
   position:relative;transform-origin:50% 100%;transition:transform .13s,background .13s;letter-spacing:.01em;
 }
 .pin::after{
   content:"";position:absolute;left:50%;bottom:-5px;width:8px;height:8px;background:inherit;
-  transform:translateX(-50%) rotate(45deg);border-right:1.5px solid var(--cream);border-bottom:1.5px solid var(--cream);
+  transform:translateX(-50%) rotate(45deg);border-right:1.5px solid #fff;border-bottom:1.5px solid #fff;
   border-radius:1px;
 }
 .pin:hover,.pin.hot{transform:scale(1.12);z-index:1000}
@@ -279,7 +287,7 @@ aside{
 .cluster{
   background:var(--paper);color:var(--ink);border:2px solid var(--ink);border-radius:50%;
   display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;
-  box-shadow:0 0 0 5px rgba(248,243,234,.55),0 2px 8px rgba(30,37,52,.3);
+  box-shadow:0 0 0 5px rgba(241,242,246,.6),0 2px 8px rgba(61,64,82,.3);
   font-family:var(--font-display);transition:transform .13s;
 }
 .cluster:hover{transform:scale(1.08)}
@@ -290,7 +298,7 @@ aside{
 .leaflet-popup-content{margin:0;width:288px!important;font-size:13px;line-height:1.45}
 .leaflet-popup-tip{background:var(--paper)}
 .pop{padding:15px 16px 14px}
-.pop h4{margin:0 0 2px;font-family:var(--font-display);font-weight:640;font-size:16px;line-height:1.3;padding-right:14px}
+.pop h4{margin:0 0 2px;font-family:var(--font-display);font-weight:700;font-size:15.5px;line-height:1.3;padding-right:14px}
 .pop .ploc{font-size:12px;color:var(--ink-soft);display:flex;gap:5px;align-items:center;flex-wrap:wrap}
 .pop .ploc .stars{color:var(--gold);font-size:10.5px;letter-spacing:1.5px}
 .pop .psum{margin:8px 0 0;font-size:12px;color:var(--ink-soft);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
@@ -305,10 +313,11 @@ aside{
 .leaflet-control-attribution a{color:var(--ink-soft)!important}
 .map-hint{
   position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:900;pointer-events:none;
-  background:rgba(30,37,52,.88);color:var(--cream);font-size:12px;font-weight:600;border-radius:99px;
+  background:rgba(61,64,82,.92);color:#fff;font-size:12px;font-weight:600;border-radius:99px;
   padding:6px 15px;box-shadow:var(--shadow-md);opacity:0;transition:opacity .3s;white-space:nowrap;backdrop-filter:blur(4px);
 }
 .map-hint.on{opacity:1}
+.map-hint.tiles{top:54px;max-width:min(92%,560px);white-space:normal;text-align:center;line-height:1.45;pointer-events:none}
 .autofit{
   position:absolute;bottom:22px;right:12px;z-index:900;display:flex;align-items:center;gap:8px;
   background:var(--paper);border:1px solid var(--line-strong);border-radius:99px;padding:6px 12px 6px 13px;
@@ -318,7 +327,7 @@ aside{
 /* ---------- toast, modal, dropzone ---------- */
 #toast{
   position:fixed;bottom:26px;left:50%;transform:translate(-50%,16px);z-index:3000;opacity:0;pointer-events:none;
-  background:var(--ink);color:var(--cream);font-size:13px;font-weight:600;border-radius:99px;padding:10px 20px;
+  background:var(--ink);color:#fff;font-size:13px;font-weight:600;border-radius:99px;padding:10px 20px;
   box-shadow:var(--shadow-lg);transition:all .25s;display:flex;align-items:center;gap:8px;
 }
 #toast.on{opacity:1;transform:translate(-50%,0)}
@@ -334,7 +343,7 @@ aside{
   animation:pop .22s cubic-bezier(.2,.9,.3,1.2);
 }
 @keyframes pop{from{transform:scale(.94) translateY(8px);opacity:0}}
-.modal h2{font-family:var(--font-display);font-weight:640;font-size:23px;margin:0 0 4px}
+.modal h2{font-family:var(--font-display);font-weight:900;font-size:22px;margin:0 0 4px}
 .modal .lead{color:var(--ink-soft);font-size:13.5px;margin:0 0 18px}
 .modal h3{font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--coral);margin:20px 0 7px}
 .modal p,.modal li{font-size:13.5px;color:var(--ink-soft);margin:6px 0}
@@ -351,7 +360,7 @@ aside{
 #dropzone.on{display:flex}
 #dropzone .inner{
   background:var(--paper);border-radius:20px;box-shadow:var(--shadow-lg);padding:30px 44px;
-  font-family:var(--font-display);font-size:21px;font-weight:640;color:var(--ink);
+  font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--ink);
 }
 
 /* ---------- mobile ---------- */
@@ -365,7 +374,7 @@ aside{
   body.mapmode aside{display:none}
   #viewToggle{
     display:flex;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:1500;
-    align-items:center;gap:8px;background:var(--ink);color:var(--cream);border:0;border-radius:99px;
+    align-items:center;gap:8px;background:var(--ink);color:#fff;border:0;border-radius:99px;
     padding:12px 22px;font-size:14px;font-weight:700;box-shadow:var(--shadow-lg);
   }
   #viewToggle svg{width:16px;height:16px}
@@ -416,6 +425,10 @@ aside{
       <div class="controlrow">
         <div class="count" id="count"></div>
         <div class="grow"></div>
+        <button id="clearFilters" title="Wyczyść wszystkie filtry" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+          Wyczyść
+        </button>
         <button id="filterToggle" aria-expanded="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.5V19l4 2v-8.5z"/></svg>
           Filtry <span class="fbadge" id="fbadge"></span>
@@ -455,10 +468,6 @@ aside{
         <div class="chips" id="ratingChips"></div>
       </div>
       <div class="fgroup">
-        <div class="flabel">Minimalny rabat <button class="reset-link" data-reset="discount">wyczyść</button></div>
-        <div class="chips" id="discountChips"></div>
-      </div>
-      <div class="fgroup">
         <div class="flabel">Udogodnienia <button class="reset-link" data-reset="amenities">wyczyść</button></div>
         <div class="chips" id="amenityChips"></div>
       </div>
@@ -475,6 +484,7 @@ aside{
 
   <div id="map" role="application" aria-label="Mapa ofert"></div>
   <div class="map-hint" id="mapHint"></div>
+  <div class="map-hint tiles" id="tileHint"></div>
   <label class="autofit" title="Automatycznie dopasuj mapę do wyników filtrowania">
     <span>Auto-dopasowanie</span>
     <span class="switch" style="width:34px;height:20px"><input type="checkbox" id="autoFit" checked><span class="tr"></span></span>
@@ -535,9 +545,13 @@ aside{
 /* ================= CONFIG ================= */
 const CONFIG = {
   csvUrl: 'offers.csv',                 // plik danych obok index.html
-  tileUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-  tileAttribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-  maxTileZoom: 19,
+  // Podkłady mapy: gdy pierwszy dostawca nie działa (blokada w sieci firmowej,
+  // CSP w podglądzie itp.), strona automatycznie przełącza się na kolejny.
+  tileProviders: [
+    {url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', maxZoom: 19},
+    {url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>', maxZoom: 20, subdomains: 'abcd'},
+    {url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', attribution: 'Tiles &copy; Esri', maxZoom: 19}
+  ],
   nominatim: 'https://nominatim.openstreetmap.org/search',
   geoDelayMs: 1150,                     // limit Nominatim: 1 zapytanie/sek.
   geoCacheKey: 'tl_geocache_v1'
@@ -631,7 +645,7 @@ const state = {
   offers: [],
   filtered: [],
   bounds: {min: 0, max: 1000},
-  filters: {q:'', regions:new Set(), stars:new Set(), pMin:null, pMax:null, rMin:0, dMin:0, amenities:new Set(), showFinished:false},
+  filters: {q:'', regions:new Set(), stars:new Set(), pMin:null, pMax:null, rMin:0, amenities:new Set(), showFinished:false},
   sort: 'price-asc',
   activeId: null
 };
@@ -705,21 +719,13 @@ function buildFilterUI(){
   // rating chips
   $('#ratingChips').innerHTML = [['0','Dowolna'],['4','4,0+'],['4.5','4,5+'],['4.7','4,7+']].map(([v,l]) =>
     `<button class="chip${(+v===f.rMin)?' on':''}" data-f="rating" data-v="${v}">${l}</button>`).join('');
-  // discount chips
-  $('#discountChips').innerHTML = [['0','Dowolny'],['30','−30%+'],['40','−40%+'],['50','−50%+']].map(([v,l]) =>
-    `<button class="chip${(+v===f.dMin)?' on':''}" data-f="discount" data-v="${v}">${l}</button>`).join('');
   // amenities by frequency
   const freq = new Map();
   state.offers.forEach(o => o.amenities.forEach(a => freq.set(a, (freq.get(a)||0)+1)));
-  const ams = [...freq.entries()].sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0],'pl')).slice(0, 18);
-  $('#amenityChips').innerHTML = ams.map(([a]) =>
-    `<button class="chip" data-f="amenities" data-v="${esc(a)}">${amIcon(a)}${esc(a)}</button>`).join('');
-  // restore chip states from filters
-  $$('#filters .chip').forEach(ch => {
-    const set = {regions:f.regions, stars:f.stars, amenities:f.amenities}[ch.dataset.f];
-    if (set && set.has(ch.dataset.f === 'stars' ? +ch.dataset.v + '' : ch.dataset.v)) ch.classList.add('on');
-    if (ch.dataset.f === 'stars' && f.stars.has(ch.dataset.v)) ch.classList.add('on');
-  });
+  const ams = [...freq.entries()].sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0],'pl')).map(([a]) => a);
+  $('#amenityChips').innerHTML = ams.map(a =>
+    `<button class="chip" data-f="amenities" data-v="${esc(a)}" title="${esc(a)}">${amIcon(a)}<span class="txt">${esc(a)}</span></button>`).join('');
+  buildChipStates();
   $('#showFinished').checked = f.showFinished;
   updateRangeUI();
 }
@@ -744,7 +750,6 @@ function applyFilters(){
     if (f.stars.size && !f.stars.has(String(o.stars))) return false;
     if (o.price != null && (o.price < f.pMin || o.price > f.pMax)) return false;
     if (f.rMin > 0 && !(o.rating >= f.rMin)) return false;
-    if (f.dMin > 0 && !(o.discount >= f.dMin)) return false;
     for (const a of f.amenities) if (!o.amenities.includes(a)) return false;
     return true;
   });
@@ -770,7 +775,6 @@ function activeFilterCount(){
   const f = state.filters, b = state.bounds;
   let n = f.regions.size + f.stars.size + f.amenities.size;
   if (f.rMin > 0) n++;
-  if (f.dMin > 0) n++;
   if (f.pMin > b.min || f.pMax < b.max) n++;
   if (f.showFinished) n++;
   return n;
@@ -782,10 +786,11 @@ function renderActiveBadge(){
   $$('.reset-link').forEach(r => {
     const f = state.filters, key = r.dataset.reset;
     const on = key==='regions'? f.regions.size : key==='stars'? f.stars.size : key==='amenities'? f.amenities.size
-      : key==='rating'? f.rMin>0 : key==='discount'? f.dMin>0
+      : key==='rating'? f.rMin>0
       : key==='price'? (f.pMin>state.bounds.min || f.pMax<state.bounds.max) : false;
     r.classList.toggle('on', !!on);
   });
+  $('#clearFilters').disabled = n === 0 && !state.filters.q;
 }
 function renderCount(){
   const total = state.offers.filter(o => state.filters.showFinished || !o.finished).length;
@@ -852,7 +857,7 @@ function renderList(){
 function initMap(){
   map = L.map('map', {zoomControl: false, worldCopyJump: true}).setView([52.1, 19.3], 6);
   L.control.zoom({position: 'topright'}).addTo(map);
-  L.tileLayer(CONFIG.tileUrl, {attribution: CONFIG.tileAttribution, maxZoom: CONFIG.maxTileZoom}).addTo(map);
+  addTileProvider(0);
   cluster = L.markerClusterGroup({
     maxClusterRadius: 46,
     showCoverageOnHover: false,
@@ -863,6 +868,28 @@ function initMap(){
     }
   });
   map.addLayer(cluster);
+}
+let tileLayer = null;
+function addTileProvider(i){
+  if (i >= CONFIG.tileProviders.length){
+    const th = $('#tileHint');
+    th.textContent = 'Nie można załadować podkładu mapy w tym środowisku (blokada obrazów z zewnętrznych serwerów). Na docelowym hostingu, np. GitHub Pages, mapa wyświetli się normalnie.';
+    th.classList.add('on');
+    return;
+  }
+  const p = CONFIG.tileProviders[i];
+  if (tileLayer) map.removeLayer(tileLayer);
+  let loadedAny = false, errors = 0, switched = false;
+  tileLayer = L.tileLayer(p.url, {attribution: p.attribution, maxZoom: p.maxZoom, subdomains: p.subdomains || 'abc'});
+  tileLayer.on('tileload', () => { loadedAny = true; $('#tileHint').classList.remove('on'); });
+  tileLayer.on('tileerror', () => {
+    errors++;
+    if (!loadedAny && errors >= 3 && !switched){
+      switched = true;
+      setTimeout(() => addTileProvider(i + 1), 50);
+    }
+  });
+  tileLayer.addTo(map);
 }
 function markerHtml(o){
   return `<div class="pin${o.id === state.activeId ? ' active' : ''}" data-id="${esc(o.id)}">${o.price != null ? fmtPln(o.price) + ' zł' : esc(o.city || '•')}</div>`;
@@ -1001,12 +1028,16 @@ function syncHash(){
     if (f.pMin > b.min) p.set('pmin', f.pMin);
     if (f.pMax < b.max) p.set('pmax', f.pMax);
     if (f.rMin > 0) p.set('rmin', f.rMin);
-    if (f.dMin > 0) p.set('dmin', f.dMin);
     if (f.amenities.size) p.set('am', [...f.amenities].join('~'));
     if (f.showFinished) p.set('fin', '1');
     if (state.sort !== 'price-asc') p.set('sort', state.sort);
     const s = p.toString();
-    history.replaceState(null, '', s ? '#' + s : location.pathname + location.search);
+    state.hashStr = s;
+    if (!syncHash.disabled){
+      try {
+        history.replaceState(null, '', s ? '#' + s : location.pathname + location.search);
+      } catch(e){ syncHash.disabled = true; } // sandbox (np. podgląd) blokuje zmianę URL — filtry i tak działają
+    }
   }, 150);
 }
 function loadHash(){
@@ -1019,7 +1050,6 @@ function loadHash(){
   if (p.get('pmin')) f.pMin = +p.get('pmin');
   if (p.get('pmax')) f.pMax = +p.get('pmax');
   if (p.get('rmin')) f.rMin = +p.get('rmin');
-  if (p.get('dmin')) f.dMin = +p.get('dmin');
   if (p.get('am')) f.amenities = new Set(p.get('am').split('~'));
   f.showFinished = p.get('fin') === '1';
   if (p.get('sort')) state.sort = p.get('sort');
@@ -1077,9 +1107,8 @@ $('#filters').addEventListener('click', e => {
   const chip = e.target.closest('.chip');
   if (chip){
     const f = state.filters, key = chip.dataset.f, v = chip.dataset.v;
-    if (key === 'rating' || key === 'discount'){
-      const prop = key === 'rating' ? 'rMin' : 'dMin';
-      f[prop] = +v;
+    if (key === 'rating'){
+      f.rMin = +v;
       chip.parentElement.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === chip));
     } else {
       const set = {regions: f.regions, stars: f.stars, amenities: f.amenities}[key];
@@ -1096,7 +1125,6 @@ $('#filters').addEventListener('click', e => {
     if (k === 'stars') f.stars.clear();
     if (k === 'amenities') f.amenities.clear();
     if (k === 'rating') f.rMin = 0;
-    if (k === 'discount') f.dMin = 0;
     if (k === 'price'){ f.pMin = state.bounds.min; f.pMax = state.bounds.max; $('#pMin').value = f.pMin; $('#pMax').value = f.pMax; updateRangeUI(); }
     buildChipStates();
     applyFilters();
@@ -1106,14 +1134,24 @@ function buildChipStates(){
   const f = state.filters;
   $$('#filters .chip').forEach(ch => {
     const k = ch.dataset.f, v = ch.dataset.v;
+    if (!k) return;
     if (k === 'rating') ch.classList.toggle('on', +v === f.rMin);
-    else if (k === 'discount') ch.classList.toggle('on', +v === f.dMin);
     else {
       const set = {regions: f.regions, stars: f.stars, amenities: f.amenities}[k];
       ch.classList.toggle('on', set ? set.has(v) : false);
     }
   });
 }
+function resetAllFilters(){
+  const f = state.filters;
+  f.q = ''; $('#q').value = ''; $('#qClear').classList.remove('on');
+  f.regions.clear(); f.stars.clear(); f.amenities.clear();
+  f.rMin = 0; f.showFinished = false; $('#showFinished').checked = false;
+  f.pMin = state.bounds.min; f.pMax = state.bounds.max;
+  $('#pMin').value = f.pMin; $('#pMax').value = f.pMax; updateRangeUI();
+  buildChipStates(); applyFilters();
+}
+$('#clearFilters').addEventListener('click', resetAllFilters);
 // price sliders
 function onRange(){
   const f = state.filters;
@@ -1131,16 +1169,7 @@ $('#showFinished').addEventListener('change', e => { state.filters.showFinished 
 $('#autoFit').addEventListener('change', () => { if ($('#autoFit').checked) renderMarkers(); });
 // list interactions (delegowane)
 $('#list').addEventListener('click', e => {
-  if (e.target.id === 'clearAll'){
-    const f = state.filters;
-    f.q = ''; $('#q').value = ''; $('#qClear').classList.remove('on');
-    f.regions.clear(); f.stars.clear(); f.amenities.clear();
-    f.rMin = 0; f.dMin = 0; f.showFinished = false; $('#showFinished').checked = false;
-    f.pMin = state.bounds.min; f.pMax = state.bounds.max;
-    $('#pMin').value = f.pMin; $('#pMax').value = f.pMax; updateRangeUI();
-    buildChipStates(); applyFilters();
-    return;
-  }
+  if (e.target.id === 'clearAll'){ resetAllFilters(); return; }
   const btn = e.target.closest('[data-act]');
   if (btn){
     const id = btn.dataset.id;
@@ -1178,7 +1207,10 @@ $('#map').addEventListener('click', e => {
   if (btn.dataset.act === 'fly') flyToOffer(id);
 });
 // topbar
-$('#btnShare').addEventListener('click', () => copyText(location.href, 'Link do widoku z filtrami skopiowany'));
+$('#btnShare').addEventListener('click', () => {
+  const base = location.href.split('#')[0];
+  copyText(state.hashStr ? base + '#' + state.hashStr : base, 'Link do widoku z filtrami skopiowany');
+});
 $('#btnCsv').addEventListener('click', () => $('#fileInput').click());
 $('#fileInput').addEventListener('change', e => {
   const file = e.target.files[0];
