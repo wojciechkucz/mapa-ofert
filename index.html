@@ -530,7 +530,8 @@ aside{
     </ul>
 
     <h3>Skąd mapa zna położenie hoteli?</h3>
-    <p>Jeśli w danych nie ma współrzędnych, adresy są geokodowane usługą OpenStreetMap (Nominatim) — bezpłatnie, ok. 1 adres/sek. Wyniki zapisują się w pamięci przeglądarki, więc kolejne wizyty są natychmiastowe.</p>
+    <p>Jeśli w danych nie ma współrzędnych, adresy są geokodowane bezpłatnymi usługami OpenStreetMap (szybki Photon, w razie potrzeby dokładniejszy Nominatim). Wyniki trafiają do pamięci przeglądarki oraz do wspólnego pliku <code>geocache.json</code> w repozytorium — dzięki niemu kolejni użytkownicy nie czekają ani sekundy. Po zakończonym geokodowaniu pobierz aktualny cache i dodaj go do repo: <button class="btn-outline" id="btnGeoCache" style="margin-top:6px;padding:6px 12px;font-size:12px">Pobierz geocache.json</button></p>
+    <p>Najszybsza opcja: jeśli eksport danych może zawierać kolumny <code>lat</code> i <code>lng</code>, pozycje są natychmiastowe i w 100% dokładne — geokodowanie w ogóle nie startuje.</p>
 
     <h3>Dobre nawyki</h3>
     <ul>
@@ -552,6 +553,7 @@ aside{
 /* ================= CONFIG ================= */
 const CONFIG = {
   csvUrl: 'offers.csv',                 // plik danych obok index.html
+  geoCacheUrl: 'geocache.json',         // opcjonalny wspólny cache lokalizacji (obok index.html)
   // Podkłady mapy: gdy pierwszy dostawca nie działa (blokada w sieci firmowej,
   // CSP w podglądzie itp.), strona automatycznie przełącza się na kolejny.
   tileProviders: [
@@ -560,7 +562,9 @@ const CONFIG = {
     {url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', attribution: 'Tiles &copy; Esri', maxZoom: 19}
   ],
   nominatim: 'https://nominatim.openstreetmap.org/search',
+  photon: 'https://photon.komoot.io/api/',
   geoDelayMs: 1150,                     // limit Nominatim: 1 zapytanie/sek.
+  geoDelayFastMs: 260,                  // odstęp między zapytaniami do Photona
   geoCacheKey: 'tl_geocache_v1'
 };
 
@@ -994,58 +998,103 @@ function setHeat(on){
   }
 }
 
-/* ================= GEOCODING (Nominatim) ================= */
+/* ============ GEOCODING: wspólny cache repo + Photon z fallbackiem Nominatim ============ */
 let geoCache = {};
 try { geoCache = JSON.parse(localStorage.getItem(CONFIG.geoCacheKey) || '{}'); } catch(e) {}
 function geoSave(){ try { localStorage.setItem(CONFIG.geoCacheKey, JSON.stringify(geoCache)); } catch(e) {} }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+// Wspólny cache commitowany do repo: raz zgeokodowane adresy nie są liczone ponownie u nikogo
+async function loadGeoCacheFile(){
+  try {
+    const res = await fetch(CONFIG.geoCacheUrl, {cache: 'no-store'});
+    if (!res.ok) return;
+    const file = await res.json();
+    if (file && typeof file === 'object') geoCache = Object.assign({}, file, geoCache);
+  } catch(e){}
+}
+function downloadGeoCache(){
+  const blob = new Blob([JSON.stringify(geoCache)], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'geocache.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  toast('Pobrano geocache.json — dodaj go do repozytorium obok index.html');
+}
+
+async function photon(q){
+  const url = CONFIG.photon + '?limit=1&lang=pl&q=' + encodeURIComponent(q);
+  const res = await fetch(url, {headers: {'Accept': 'application/json'}});
+  if (!res.ok) throw new Error('http ' + res.status);
+  const j = await res.json();
+  await sleep(CONFIG.geoDelayFastMs);
+  const f = j && j.features && j.features[0];
+  return (f && f.geometry) ? {lat: +f.geometry.coordinates[1], lng: +f.geometry.coordinates[0]} : null;
+}
 async function nominatim(q){
   const url = CONFIG.nominatim + '?format=jsonv2&limit=1&accept-language=pl&q=' + encodeURIComponent(q);
   const res = await fetch(url, {headers: {'Accept': 'application/json'}});
   if (!res.ok) throw new Error('http ' + res.status);
   const j = await res.json();
+  await sleep(CONFIG.geoDelayMs);
   return (j && j[0]) ? {lat: +j[0].lat, lng: +j[0].lon} : null;
 }
+
+let geoRunId = 0;
 async function geocodeAll(){
+  const myRun = ++geoRunId;
   const todo = state.offers.filter(o => o.lat == null || o.geoApprox);
   if (!todo.length) return;
   const pill = $('#geoStatus'), txt = $('#geoStatusTxt');
-  let done = 0, failed = 0;
+  let done = 0, failed = 0, freshHits = 0, photonDown = false, nominatimDown = false;
   pill.classList.add('on');
   for (const o of todo){
+    if (myRun !== geoRunId) return; // wczytano nowe dane — porzuć starą kolejkę
     txt.textContent = `Ustalam lokalizacje… ${done + 1}/${todo.length}`;
     const variants = [
       [o.street, o.postal, o.city, o.country].filter(Boolean).join(', '),
       [o.postal, o.city, o.country].filter(Boolean).join(', '),
       [o.city, o.region, o.country].filter(Boolean).join(', ')
     ].filter(v => v.length > 3);
-    let hit = null, cachedOnly = true;
+    let hit = null;
     for (const v of variants){
       const key = v.toLowerCase();
       if (key in geoCache){ if (geoCache[key]) { hit = geoCache[key]; break; } continue; }
-      cachedOnly = false;
-      try {
-        hit = await nominatim(v);
-        geoCache[key] = hit;
-        await sleep(CONFIG.geoDelayMs);
-      } catch(e){ break; } // sieć niedostępna — przerwij warianty
+      if (photonDown && nominatimDown) break;
+      // 1) Photon — szybki (ok. 4 adresy/sek.); 2) Nominatim — dokładniejszy fallback
+      if (!photonDown){
+        try { hit = await photon(v); } catch(e){ photonDown = true; }
+      }
+      if (!hit && !nominatimDown){
+        try { hit = await nominatim(v); } catch(e){ nominatimDown = true; }
+      }
+      if (photonDown && nominatimDown) break;
+      geoCache[key] = hit;
+      freshHits++;
       if (hit) break;
     }
     if (hit){
       const changed = o.lat !== hit.lat || o.lng !== hit.lng;
       o.lat = hit.lat; o.lng = hit.lng; o.geoApprox = false;
+      geoSave();
       if (changed){
         const m = markersById.get(o.id);
         if (m) m.setLatLng([o.lat, o.lng]); else refreshSoon();
       }
-      if (!cachedOnly) geoSave();
-    } else if (!o.geoApprox) failed++;
+    } else {
+      failed++;
+      if (photonDown && nominatimDown) break; // brak dostępu do sieci — przerwij
+    }
     done++;
   }
+  if (myRun !== geoRunId) return;
   pill.classList.remove('on');
   refreshSoon();
-  if (failed) toast(`Nie udało się zlokalizować ${failed} ${failed === 1 ? 'oferty' : 'ofert'}`);
+  if (failed && !(photonDown && nominatimDown))
+    toast(`Nie udało się zlokalizować ${failed} ${failed === 1 ? 'oferty' : 'ofert'}`);
+  if (freshHits >= 5)
+    toast('Geokodowanie zakończone — pobierz geocache.json (Pomoc) i dodaj do repo, aby inni mieli lokalizacje od razu');
 }
 let refreshT = null;
 function refreshSoon(){ clearTimeout(refreshT); refreshT = setTimeout(applyFilters, 250); }
@@ -1105,6 +1154,7 @@ function ingest(text, sourceLabel){
 async function boot(){
   loadHash();
   initMap();
+  await loadGeoCacheFile();
   let text = null, label = null;
   try {
     const res = await fetch(CONFIG.csvUrl, {cache: 'no-store'});
@@ -1253,6 +1303,7 @@ $('#fileInput').addEventListener('change', e => {
 });
 // help modal
 $('#btnHelp').addEventListener('click', () => $('#helpModal').classList.add('on'));
+$('#btnGeoCache').addEventListener('click', downloadGeoCache);
 $('#helpModal').addEventListener('click', e => {
   if (e.target.id === 'helpModal' || e.target.closest('[data-close]')) $('#helpModal').classList.remove('on');
 });
