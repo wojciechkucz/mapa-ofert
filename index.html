@@ -318,6 +318,7 @@ aside{
 }
 .map-hint.on{opacity:1}
 .map-hint.tiles{top:54px;max-width:min(92%,560px);white-space:normal;text-align:center;line-height:1.45;pointer-events:none}
+.heattoggle{bottom:64px}
 .autofit{
   position:absolute;bottom:22px;right:12px;z-index:900;display:flex;align-items:center;gap:8px;
   background:var(--paper);border:1px solid var(--line-strong);border-radius:99px;padding:6px 12px 6px 13px;
@@ -381,6 +382,7 @@ aside{
   .topbar{flex-wrap:wrap;gap:8px;padding:10px 14px}
   .tb-btn span{display:none}
   .autofit{bottom:74px}
+  .heattoggle{bottom:116px}
 }
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
@@ -447,10 +449,6 @@ aside{
 
     <div id="filters">
       <div class="fgroup">
-        <div class="flabel">Region <button class="reset-link" data-reset="regions">wyczyść</button></div>
-        <div class="chips" id="regionChips"></div>
-      </div>
-      <div class="fgroup">
         <div class="flabel">Kategoria obiektu <button class="reset-link" data-reset="stars">wyczyść</button></div>
         <div class="chips" id="starChips"></div>
       </div>
@@ -485,10 +483,15 @@ aside{
   <div id="map" role="application" aria-label="Mapa ofert"></div>
   <div class="map-hint" id="mapHint"></div>
   <div class="map-hint tiles" id="tileHint"></div>
+  <label class="autofit heattoggle" title="Pokaż zagęszczenie ofert w skali Polski — puste obszary widać od razu">
+    <span>Heatmapa</span>
+    <span class="switch" style="width:34px;height:20px"><input type="checkbox" id="heatToggle"><span class="tr"></span></span>
+  </label>
   <label class="autofit" title="Automatycznie dopasuj mapę do wyników filtrowania">
     <span>Auto-dopasowanie</span>
     <span class="switch" style="width:34px;height:20px"><input type="checkbox" id="autoFit" checked><span class="tr"></span></span>
   </label>
+
 </main>
 
 <button id="viewToggle">
@@ -515,6 +518,9 @@ aside{
       <li><b>„Udostępnij widok”</b> (u góry) kopiuje link do tej strony z zapisanymi filtrami — możesz wysłać koledze dokładnie ten sam widok.</li>
     </ul>
 
+    <h3>Heatmapa</h3>
+    <p>Przełącznik „Heatmapa” w prawym dolnym rogu mapy zamienia pinezki na mapę zagęszczenia ofert w skali Polski — obszary bez pokrycia widać od razu. Heatmapa na żywo uwzględnia aktywne filtry.</p>
+
     <h3>Aktualizacja danych</h3>
     <ul>
       <li>Strona wczytuje plik <code>offers.csv</code> leżący obok <code>index.html</code>. Aby zaktualizować oferty, podmień ten plik w repozytorium — nic więcej.</li>
@@ -539,6 +545,7 @@ aside{
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
 <script>
 'use strict';
 
@@ -645,9 +652,10 @@ const state = {
   offers: [],
   filtered: [],
   bounds: {min: 0, max: 1000},
-  filters: {q:'', regions:new Set(), stars:new Set(), pMin:null, pMax:null, rMin:0, amenities:new Set(), showFinished:false},
+  filters: {q:'', stars:new Set(), pMin:null, pMax:null, rMin:0, amenities:new Set(), showFinished:false},
   sort: 'price-asc',
-  activeId: null
+  activeId: null,
+  heatOn: false
 };
 let map, cluster, markersById = new Map();
 
@@ -696,10 +704,6 @@ function parseCsv(text){
 /* ================= FILTER UI BUILD ================= */
 function buildFilterUI(){
   const f = state.filters;
-  // regions
-  const regions = [...new Set(state.offers.map(o => o.region).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pl'));
-  $('#regionChips').innerHTML = regions.map(r =>
-    `<button class="chip" data-f="regions" data-v="${esc(r)}">${esc(r)}</button>`).join('');
   // stars
   const stars = [...new Set(state.offers.map(o => o.stars).filter(s => s > 0))].sort((a,b)=>a-b);
   $('#starChips').innerHTML = stars.map(s =>
@@ -746,7 +750,6 @@ function applyFilters(){
   state.filtered = state.offers.filter(o => {
     if (!f.showFinished && o.finished) return false;
     if (f.q && !o.search.includes(f.q)) return false;
-    if (f.regions.size && !f.regions.has(o.region)) return false;
     if (f.stars.size && !f.stars.has(String(o.stars))) return false;
     if (o.price != null && (o.price < f.pMin || o.price > f.pMax)) return false;
     if (f.rMin > 0 && !(o.rating >= f.rMin)) return false;
@@ -773,7 +776,7 @@ function sortOffers(){
 }
 function activeFilterCount(){
   const f = state.filters, b = state.bounds;
-  let n = f.regions.size + f.stars.size + f.amenities.size;
+  let n = f.stars.size + f.amenities.size;
   if (f.rMin > 0) n++;
   if (f.pMin > b.min || f.pMax < b.max) n++;
   if (f.showFinished) n++;
@@ -785,7 +788,7 @@ function renderActiveBadge(){
   b.textContent = n; b.classList.toggle('on', n > 0);
   $$('.reset-link').forEach(r => {
     const f = state.filters, key = r.dataset.reset;
-    const on = key==='regions'? f.regions.size : key==='stars'? f.stars.size : key==='amenities'? f.amenities.size
+    const on = key==='stars'? f.stars.size : key==='amenities'? f.amenities.size
       : key==='rating'? f.rMin>0
       : key==='price'? (f.pMin>state.bounds.min || f.pMax<state.bounds.max) : false;
     r.classList.toggle('on', !!on);
@@ -910,8 +913,11 @@ function renderMarkers(){
   cluster.clearLayers();
   markersById.clear();
   const pts = [];
+  const showPins = !state.heatOn;
   state.filtered.forEach(o => {
     if (o.lat == null || o.lng == null) return;
+    pts.push([o.lat, o.lng]);
+    if (!showPins) return;
     const m = L.marker([o.lat, o.lng], {
       icon: L.divIcon({html: markerHtml(o), className: 'pin-wrap', iconSize: null, iconAnchor: [0, 0]}),
       riseOnHover: true, title: o.name, alt: o.name
@@ -922,9 +928,9 @@ function renderMarkers(){
     m.on('mouseout', () => hotCard(o.id, false));
     markersById.set(o.id, m);
     cluster.addLayer(m);
-    pts.push([o.lat, o.lng]);
   });
-  if ($('#autoFit').checked && pts.length){
+  updateHeat();
+  if (!state.heatOn && $('#autoFit').checked && pts.length){
     map.fitBounds(L.latLngBounds(pts), {padding: [56, 56], maxZoom: 13});
   }
   const missing = state.filtered.filter(o => o.lat == null).length;
@@ -958,6 +964,34 @@ function flyToOffer(id){
   map.flyTo([o.lat, o.lng], target, {duration: .8});
   const m = markersById.get(id);
   if (m) setTimeout(() => { cluster.zoomToShowLayer(m, () => m.openPopup()); }, 850);
+}
+
+/* ================= HEATMAPA ================= */
+const POLAND_BOUNDS = L.latLngBounds([[48.95, 14.05], [54.95, 24.2]]);
+let heatLayer = null;
+function updateHeat(){
+  const want = state.heatOn && typeof L.heatLayer === 'function';
+  if (heatLayer){ map.removeLayer(heatLayer); heatLayer = null; }
+  if (!want) return;
+  const pts = state.filtered.filter(o => o.lat != null && o.lng != null).map(o => [o.lat, o.lng, 0.9]);
+  if (!pts.length) return;
+  heatLayer = L.heatLayer(pts, {
+    radius: 42, blur: 30, maxZoom: 11, minOpacity: .35,
+    gradient: {.25: '#8fd3dd', .5: '#f5af00', .75: '#ff5500', 1: '#e0001d'} // morski -> złoty -> pomarańcz -> czerwień
+  });
+  heatLayer.addTo(map);
+}
+function setHeat(on){
+  state.heatOn = on;
+  renderMarkers();
+  if (on){
+    if (typeof L.heatLayer !== 'function') toast('Nie udało się załadować wtyczki heatmapy');
+    const pts = state.filtered.filter(o => o.lat != null).map(o => [o.lat, o.lng]);
+    const inPl = pts.length && pts.every(p => POLAND_BOUNDS.contains(p));
+    map.flyToBounds(inPl || !pts.length ? POLAND_BOUNDS : L.latLngBounds(pts).pad(.2), {duration: .7});
+  } else {
+    applyFilters(); // przywraca pinezki i auto-dopasowanie
+  }
 }
 
 /* ================= GEOCODING (Nominatim) ================= */
@@ -1023,7 +1057,6 @@ function syncHash(){
   hashT = setTimeout(() => {
     const f = state.filters, b = state.bounds, p = new URLSearchParams();
     if (f.q) p.set('q', f.q);
-    if (f.regions.size) p.set('reg', [...f.regions].join('~'));
     if (f.stars.size) p.set('st', [...f.stars].join('~'));
     if (f.pMin > b.min) p.set('pmin', f.pMin);
     if (f.pMax < b.max) p.set('pmax', f.pMax);
@@ -1045,7 +1078,6 @@ function loadHash(){
   const p = new URLSearchParams(location.hash.slice(1));
   const f = state.filters;
   f.q = p.get('q') || '';
-  if (p.get('reg')) f.regions = new Set(p.get('reg').split('~'));
   if (p.get('st')) f.stars = new Set(p.get('st').split('~'));
   if (p.get('pmin')) f.pMin = +p.get('pmin');
   if (p.get('pmax')) f.pMax = +p.get('pmax');
@@ -1111,7 +1143,7 @@ $('#filters').addEventListener('click', e => {
       f.rMin = +v;
       chip.parentElement.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === chip));
     } else {
-      const set = {regions: f.regions, stars: f.stars, amenities: f.amenities}[key];
+      const set = {stars: f.stars, amenities: f.amenities}[key];
       set.has(v) ? set.delete(v) : set.add(v);
       chip.classList.toggle('on');
     }
@@ -1121,7 +1153,6 @@ $('#filters').addEventListener('click', e => {
   const reset = e.target.closest('.reset-link');
   if (reset){
     const f = state.filters, k = reset.dataset.reset;
-    if (k === 'regions') f.regions.clear();
     if (k === 'stars') f.stars.clear();
     if (k === 'amenities') f.amenities.clear();
     if (k === 'rating') f.rMin = 0;
@@ -1137,7 +1168,7 @@ function buildChipStates(){
     if (!k) return;
     if (k === 'rating') ch.classList.toggle('on', +v === f.rMin);
     else {
-      const set = {regions: f.regions, stars: f.stars, amenities: f.amenities}[k];
+      const set = {stars: f.stars, amenities: f.amenities}[k];
       ch.classList.toggle('on', set ? set.has(v) : false);
     }
   });
@@ -1145,7 +1176,7 @@ function buildChipStates(){
 function resetAllFilters(){
   const f = state.filters;
   f.q = ''; $('#q').value = ''; $('#qClear').classList.remove('on');
-  f.regions.clear(); f.stars.clear(); f.amenities.clear();
+  f.stars.clear(); f.amenities.clear();
   f.rMin = 0; f.showFinished = false; $('#showFinished').checked = false;
   f.pMin = state.bounds.min; f.pMax = state.bounds.max;
   $('#pMin').value = f.pMin; $('#pMax').value = f.pMax; updateRangeUI();
@@ -1242,6 +1273,8 @@ window.addEventListener('drop', e => {
   r.onload = () => ingest(r.result, file.name);
   r.readAsText(file, 'utf-8');
 });
+// heatmapa
+$('#heatToggle').addEventListener('change', e => setHeat(e.target.checked));
 // mobile view toggle
 function syncViewToggle(){
   $('#viewToggleTxt').textContent = document.body.classList.contains('mapmode') ? 'Lista' : 'Mapa';
