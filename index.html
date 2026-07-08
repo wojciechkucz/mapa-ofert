@@ -93,13 +93,26 @@ aside{
 /* ---------- panel head ---------- */
 .panel-head{padding:16px 18px 0;flex:none}
 .searchrow{position:relative;margin-bottom:10px}
-.searchrow svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--ink-faint);pointer-events:none}
-#q{
-  width:100%;padding:11px 38px 11px 38px;border:1px solid var(--line-strong);border-radius:var(--r-md);
-  background:var(--paper);font-size:14px;box-shadow:var(--shadow-sm);transition:border-color .15s;
+.searchrow > .s-ico{position:absolute;left:13px;top:21px;transform:translateY(-50%);width:16px;height:16px;color:var(--ink-faint);pointer-events:none;z-index:2}
+.tokfield{
+  display:flex;flex-wrap:wrap;align-items:center;gap:5px;min-height:42px;cursor:text;
+  padding:5px 36px 5px 36px;border:1px solid var(--line-strong);border-radius:var(--r-md);
+  background:var(--paper);box-shadow:var(--shadow-sm);transition:border-color .15s;
 }
-#q:focus{border-color:var(--coral);outline:none;box-shadow:0 0 0 3px var(--coral-tint)}
+.tokfield:focus-within{border-color:var(--coral);box-shadow:0 0 0 3px var(--coral-tint)}
+#q{flex:1;min-width:90px;border:0;outline:none;background:none;padding:5px 0;font-size:14px}
 #q::placeholder{color:var(--ink-faint)}
+.tok{display:flex;align-items:center;gap:6px;background:var(--ink);color:#fff;border-radius:99px;padding:3px 6px 3px 10px;font-size:12px;font-weight:600;max-width:100%}
+.tok small{opacity:.6;font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.tok button{border:0;background:rgba(255,255,255,.2);color:#fff;width:16px;height:16px;flex:none;border-radius:50%;font-size:11px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.tok button:hover{background:var(--coral)}
+.sugg{
+  position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:900;overflow:hidden;overflow-y:auto;max-height:284px;
+  background:var(--paper);border:1px solid var(--line-strong);border-radius:var(--r-md);box-shadow:var(--shadow-lg);
+}
+.sugg .it{display:flex;align-items:center;gap:9px;padding:9px 12px;font-size:13px;cursor:pointer}
+.sugg .it:hover,.sugg .it.sel{background:var(--coral-tint)}
+.sugg .ty{font-size:8.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);background:var(--cream);border:1px solid var(--line);border-radius:99px;padding:2px 7px;flex:none;min-width:46px;text-align:center}
 #qClear{
   position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:transparent;
   width:28px;height:28px;border-radius:50%;color:var(--ink-faint);display:none;align-items:center;justify-content:center;
@@ -163,6 +176,14 @@ aside{
 }
 .reset-link.on{display:inline}
 .reset-link:hover{text-decoration:underline}
+.georow{display:flex;gap:8px;align-items:stretch}
+.geo-pick{flex:1;padding:8px 10px;font-size:12.5px}
+.geo-pick.picking{border-color:var(--coral);color:var(--coral);background:var(--coral-tint)}
+.geo-rad{display:flex;align-items:center;gap:4px;border:1px solid var(--line-strong);border-radius:var(--r-sm);background:var(--paper);padding:0 10px;box-shadow:var(--shadow-sm);font-size:12px;color:var(--ink-soft)}
+.geo-rad input{width:48px;border:0;background:none;padding:8px 0;font-size:13px;font-weight:700;text-align:right;outline:none;color:var(--ink)}
+.geo-rad input::-webkit-outer-spin-button,.geo-rad input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.geo-status{font-size:11.5px;color:var(--ink-soft);margin:8px 0 0}
+.geo-center{width:16px;height:16px;border-radius:50%;background:var(--coral);border:3px solid #fff;box-shadow:0 0 0 2px var(--coral),0 2px 8px rgba(61,64,82,.4);cursor:grab}
 #amenityChips{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 #amenityChips .chip{height:30px;padding:0 10px;font-size:11px;border-radius:8px;justify-content:flex-start;min-width:0}
 #amenityChips .chip .txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -225,6 +246,7 @@ aside{
 }
 .card .loc svg{width:13px;height:13px;color:var(--coral);flex:none}
 .card .loc .stars{color:var(--gold);letter-spacing:1.5px;font-size:11.5px}
+.card .loc .dist{font-weight:700;color:var(--coral)}
 .card .sep{color:var(--line-strong)}
 .pricebar{display:flex;align-items:baseline;gap:8px;margin-top:10px;flex-wrap:wrap}
 .pricebar .now{font-family:var(--font-display);font-weight:900;font-size:21px;line-height:1;color:var(--ink)}
@@ -418,11 +440,14 @@ aside{
   <aside>
     <div class="panel-head">
       <div class="searchrow">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input id="q" type="text" placeholder="Szukaj: hotel, miasto, region…" autocomplete="off" aria-label="Szukaj oferty">
+        <svg class="s-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <div class="tokfield" id="tokWrap">
+          <input id="q" type="text" placeholder="Szukaj: hotel, miasto, region, kraj…" autocomplete="off" role="combobox" aria-expanded="false" aria-label="Szukaj oferty">
+        </div>
         <button id="qClear" aria-label="Wyczyść wyszukiwanie">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
+        <div class="sugg" id="sugg" role="listbox" hidden></div>
       </div>
       <div class="controlrow">
         <div class="count" id="count"></div>
@@ -439,6 +464,7 @@ aside{
           <select id="sort" aria-label="Sortowanie">
             <option value="price-asc">Cena: najniższa</option>
             <option value="price-desc">Cena: najwyższa</option>
+            <option value="dist-asc">Odległość: najbliżej</option>
             <option value="disc-desc">Rabat: największy</option>
             <option value="rate-desc">Ocena: najwyższa</option>
             <option value="name-asc">Nazwa: A–Z</option>
@@ -448,6 +474,14 @@ aside{
     </div>
 
     <div id="filters">
+      <div class="fgroup">
+        <div class="flabel">Promień od punktu na mapie <button class="reset-link" data-reset="geo">wyczyść</button></div>
+        <div class="georow">
+          <button class="btn-outline geo-pick" id="geoPick">Wskaż punkt na mapie</button>
+          <div class="geo-rad"><input type="number" id="geoKm" min="1" max="1000" step="5" value="150" aria-label="Promień w kilometrach"><span>km</span></div>
+        </div>
+        <p class="geo-status" id="geoInfo" hidden></p>
+      </div>
       <div class="fgroup">
         <div class="flabel">Kategoria obiektu <button class="reset-link" data-reset="stars">wyczyść</button></div>
         <div class="chips" id="starChips"></div>
@@ -512,7 +546,9 @@ aside{
 
     <h3>Codzienna praca</h3>
     <ul>
-      <li>Ustaw filtry (region, cena, ocena, udogodnienia) — mapa i lista aktualizują się na żywo.</li>
+      <li>Ustaw filtry (kategoria, cena, ocena, udogodnienia) — mapa i lista aktualizują się na żywo.</li>
+      <li>Wyszukiwarka podpowiada regiony, miasta, kraje i hotele; wybierz kilka podpowiedzi naraz (np. Małopolskie + Śląskie), a wyniki się zsumują. Ignoruje polskie znaki i końcówki — „malopolska” znajdzie Małopolskie. Działa też numer oferty.</li>
+      <li>„Promień od punktu”: kliknij „Wskaż punkt na mapie”, potem kliknij mapę i ustaw promień w km — pojawi się okrąg wyszukiwania, którego pomarańczowy środek można przeciągać. Sortowanie „Odległość: najbliżej” układa wyniki od najbliższych.</li>
       <li>Kliknij <b>„Na mapie”</b> na karcie, aby przelecieć do obiektu; kliknięcie znacznika podświetla kartę na liście.</li>
       <li><b>„Kopiuj”</b> na karcie kopiuje link do oferty na travelist.pl — wklej go klientowi na czacie/mailu.</li>
       <li><b>„Udostępnij widok”</b> (u góry) kopiuje link do tej strony z zapisanymi filtrami — możesz wysłać koledze dokładnie ten sam widok.</li>
@@ -584,6 +620,21 @@ const $$ = s => Array.from(document.querySelectorAll(s));
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmtPln = n => new Intl.NumberFormat('pl-PL', {maximumFractionDigits: 0}).format(Math.round(n));
 const clean = s => String(s ?? '').replace(/\s+/g, ' ').replace(/\*\*/g, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').trim();
+// Normalizacja do wyszukiwania: małe litery + bez polskich znaków
+const deacc = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ł/g, 'l');
+// Dopasowanie tolerujące końcówki: "malopolska" znajdzie "małopolskie"
+function fuzzyIncludes(nText, nWord){
+  for (let cut = 0; cut <= 3 && nWord.length - cut >= 3; cut++){
+    if (nText.includes(nWord.slice(0, nWord.length - cut))) return true;
+  }
+  return false;
+}
+const textMatch = (nText, q) => deacc(q).split(/\s+/).filter(Boolean).every(w => fuzzyIncludes(nText, w));
+function distKm(aLat, aLng, bLat, bLng){
+  const R = 6371, r = Math.PI / 180;
+  const h = Math.sin((bLat - aLat) * r / 2) ** 2 + Math.cos(aLat * r) * Math.cos(bLat * r) * Math.sin((bLng - aLng) * r / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
 
 // Naprawa ocen zamienionych przez Excela na daty: "4.lip" -> 4.7
 const PL_MONTHS = {sty:1,lut:2,mar:3,kwi:4,maj:5,cze:6,lip:7,sie:8,wrz:9,'paź':10,paz:10,lis:11,gru:12};
@@ -656,7 +707,7 @@ const state = {
   offers: [],
   filtered: [],
   bounds: {min: 0, max: 1000},
-  filters: {q:'', stars:new Set(), pMin:null, pMax:null, rMin:0, amenities:new Set(), showFinished:false},
+  filters: {q:'', tokens:[], geo:null, stars:new Set(), pMin:null, pMax:null, rMin:0, amenities:new Set(), showFinished:false},
   sort: 'price-asc',
   activeId: null,
   heatOn: false
@@ -700,7 +751,7 @@ function parseCsv(text){
       [o.lat, o.lng] = FALLBACK_COORDS[id];
       o.geoApprox = true; // do skorygowania przez geokoder
     }
-    o.search = (o.name + ' ' + o.city + ' ' + o.region + ' ' + o.tagline).toLowerCase();
+    o.search = deacc([o.name, o.city, o.region, o.country, o.tagline, o.id].join(' '));
     return o;
   });
 }
@@ -708,6 +759,14 @@ function parseCsv(text){
 /* ================= FILTER UI BUILD ================= */
 function buildFilterUI(){
   const f = state.filters;
+  // indeks podpowiedzi wyszukiwarki (regiony, miasta, kraje, hotele)
+  const uniq = arr => [...new Set(arr.filter(Boolean))];
+  state.sugg = [
+    ...uniq(state.offers.map(o => o.region)).map(v => ({t: 'Region', v, n: deacc(v)})),
+    ...uniq(state.offers.map(o => o.city)).map(v => ({t: 'Miasto', v, n: deacc(v)})),
+    ...uniq(state.offers.map(o => o.country)).map(v => ({t: 'Kraj', v, n: deacc(v)})),
+    ...state.offers.map(o => ({t: 'Hotel', v: o.name, n: deacc(o.name), id: o.id}))
+  ];
   // stars
   const stars = [...new Set(state.offers.map(o => o.stars).filter(s => s > 0))].sort((a,b)=>a-b);
   $('#starChips').innerHTML = stars.map(s =>
@@ -730,7 +789,7 @@ function buildFilterUI(){
   // amenities by frequency
   const freq = new Map();
   state.offers.forEach(o => o.amenities.forEach(a => freq.set(a, (freq.get(a)||0)+1)));
-  const ams = [...freq.entries()].sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0],'pl')).map(([a]) => a);
+  const ams = [...freq.keys()].sort((a, b) => a.localeCompare(b, 'pl')); // alfabetycznie A-Z
   $('#amenityChips').innerHTML = ams.map(a =>
     `<button class="chip" data-f="amenities" data-v="${esc(a)}" title="${esc(a)}">${amIcon(a)}<span class="txt">${esc(a)}</span></button>`).join('');
   buildChipStates();
@@ -753,7 +812,20 @@ function applyFilters(){
   const f = state.filters;
   state.filtered = state.offers.filter(o => {
     if (!f.showFinished && o.finished) return false;
-    if (f.q && !o.search.includes(f.q)) return false;
+    if (f.tokens.length){
+      const ok = f.tokens.some(tk =>
+        tk.t === 'Hotel' ? o.id === tk.id
+        : tk.t === 'Region' ? deacc(o.region) === tk.n
+        : tk.t === 'Miasto' ? deacc(o.city) === tk.n
+        : deacc(o.country) === tk.n);
+      if (!ok) return false;
+    }
+    if (f.q && !textMatch(o.search, f.q)) return false;
+    if (f.geo){
+      if (o.lat == null || o.lng == null) return false;
+      o._dist = distKm(f.geo.lat, f.geo.lng, o.lat, o.lng);
+      if (o._dist > f.geo.km) return false;
+    }
     if (f.stars.size && !f.stars.has(String(o.stars))) return false;
     if (o.price != null && (o.price < f.pMin || o.price > f.pMax)) return false;
     if (f.rMin > 0 && !(o.rating >= f.rMin)) return false;
@@ -772,6 +844,7 @@ function sortOffers(){
   const by = {
     'price-asc':  (a,b) => (a.price??1e9) - (b.price??1e9),
     'price-desc': (a,b) => (b.price??-1) - (a.price??-1),
+    'dist-asc':   (a,b) => (a._dist ?? 1e9) - (b._dist ?? 1e9),
     'disc-desc':  (a,b) => (b.discount??-1) - (a.discount??-1),
     'rate-desc':  (a,b) => (b.rating??-1) - (a.rating??-1) || (b.ratingCount??0)-(a.ratingCount??0),
     'name-asc':   (a,b) => a.name.localeCompare(b.name,'pl')
@@ -780,7 +853,8 @@ function sortOffers(){
 }
 function activeFilterCount(){
   const f = state.filters, b = state.bounds;
-  let n = f.stars.size + f.amenities.size;
+  let n = f.stars.size + f.amenities.size + f.tokens.length;
+  if (f.geo) n++;
   if (f.rMin > 0) n++;
   if (f.pMin > b.min || f.pMax < b.max) n++;
   if (f.showFinished) n++;
@@ -794,6 +868,7 @@ function renderActiveBadge(){
     const f = state.filters, key = r.dataset.reset;
     const on = key==='stars'? f.stars.size : key==='amenities'? f.amenities.size
       : key==='rating'? f.rMin>0
+      : key==='geo'? !!f.geo
       : key==='price'? (f.pMin>state.bounds.min || f.pMax<state.bounds.max) : false;
     r.classList.toggle('on', !!on);
   });
@@ -849,6 +924,7 @@ function renderList(){
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
         <span>${esc(o.city)}${o.region ? `, ${esc(o.region)}` : ''}</span>
         ${o.stars ? `<span class="sep">·</span><span class="stars" title="Kategoria ${o.stars}">${starStr(o.stars)}</span>` : ''}
+        ${state.filters.geo && o._dist != null ? `<span class="sep">·</span><span class="dist">${Math.round(o._dist)} km</span>` : ''}
       </div>
       ${priceBarHtml(o)}
       ${o.amenities.length ? `<div class="ams">
@@ -875,6 +951,11 @@ function initMap(){
     }
   });
   map.addLayer(cluster);
+  map.on('click', e => {
+    if (!picking) return;
+    setPicking(false);
+    setGeoCenter(e.latlng.lat, e.latlng.lng);
+  });
 }
 let tileLayer = null;
 function addTileProvider(i){
@@ -934,8 +1015,9 @@ function renderMarkers(){
     cluster.addLayer(m);
   });
   updateHeat();
-  if (!state.heatOn && $('#autoFit').checked && pts.length){
-    map.fitBounds(L.latLngBounds(pts), {padding: [56, 56], maxZoom: 13});
+  if (!state.heatOn && $('#autoFit').checked){
+    if (state.filters.geo && geoCircle) map.fitBounds(geoCircle.getBounds(), {padding: [30, 30]});
+    else if (pts.length) map.fitBounds(L.latLngBounds(pts), {padding: [56, 56], maxZoom: 13});
   }
   const missing = state.filtered.filter(o => o.lat == null).length;
   const hint = $('#mapHint');
@@ -968,6 +1050,55 @@ function flyToOffer(id){
   map.flyTo([o.lat, o.lng], target, {duration: .8});
   const m = markersById.get(id);
   if (m) setTimeout(() => { cluster.zoomToShowLayer(m, () => m.openPopup()); }, 850);
+}
+
+/* ================= PROMIEŃ OD PUNKTU ================= */
+let geoCircle = null, geoCenterMarker = null, picking = false;
+function setPicking(on){
+  picking = on;
+  const b = $('#geoPick');
+  b.classList.toggle('picking', on);
+  b.textContent = on ? 'Kliknij na mapie…' : 'Wskaż punkt na mapie';
+  $('#map').style.cursor = on ? 'crosshair' : '';
+  if (on && window.innerWidth <= 900){ document.body.classList.add('mapmode'); syncViewToggle(); map.invalidateSize(); }
+}
+function setGeoCenter(lat, lng){
+  const km = Math.min(1000, Math.max(1, parseFloat($('#geoKm').value) || 150));
+  $('#geoKm').value = km;
+  state.filters.geo = {lat, lng, km};
+  drawGeo();
+  applyFilters();
+}
+function drawGeo(){
+  const g = state.filters.geo;
+  if (geoCircle){ map.removeLayer(geoCircle); geoCircle = null; }
+  if (geoCenterMarker){ map.removeLayer(geoCenterMarker); geoCenterMarker = null; }
+  $('#geoInfo').hidden = !g;
+  if (!g) return;
+  geoCircle = L.circle([g.lat, g.lng], {
+    radius: g.km * 1000, color: '#ff5500', weight: 2, dashArray: '6 6',
+    fillColor: '#ff5500', fillOpacity: .06, interactive: false
+  }).addTo(map);
+  geoCenterMarker = L.marker([g.lat, g.lng], {
+    draggable: true,
+    icon: L.divIcon({className: 'pin-wrap', html: '<div class="geo-center" title="Przeciągnij, aby przesunąć środek"></div>', iconSize: [16, 16], iconAnchor: [8, 8]})
+  }).addTo(map);
+  geoCenterMarker.on('drag', e => {
+    const p = e.target.getLatLng();
+    g.lat = p.lat; g.lng = p.lng;
+    if (geoCircle) geoCircle.setLatLng(p);
+  });
+  geoCenterMarker.on('dragend', () => { $('#geoInfo').textContent = geoInfoText(); applyFilters(); });
+  $('#geoInfo').textContent = geoInfoText();
+}
+function geoInfoText(){
+  const g = state.filters.geo;
+  return `Środek: ${g.lat.toFixed(3)}, ${g.lng.toFixed(3)} · promień ${g.km} km — pomarańczowy punkt można przeciągać`;
+}
+function clearGeo(){
+  state.filters.geo = null;
+  drawGeo();
+  if (state.sort === 'dist-asc'){ state.sort = 'price-asc'; $('#sort').value = 'price-asc'; }
 }
 
 /* ================= HEATMAPA ================= */
@@ -1106,6 +1237,8 @@ function syncHash(){
   hashT = setTimeout(() => {
     const f = state.filters, b = state.bounds, p = new URLSearchParams();
     if (f.q) p.set('q', f.q);
+    if (f.tokens.length) p.set('tok', f.tokens.map(t => (t.t === 'Hotel' ? 'H:' + t.id + ':' : TYPE_KEY[t.t] + ':') + t.v).join('~'));
+    if (f.geo) p.set('geo', f.geo.lat.toFixed(4) + ',' + f.geo.lng.toFixed(4) + ',' + f.geo.km);
     if (f.stars.size) p.set('st', [...f.stars].join('~'));
     if (f.pMin > b.min) p.set('pmin', f.pMin);
     if (f.pMax < b.max) p.set('pmax', f.pMax);
@@ -1127,6 +1260,20 @@ function loadHash(){
   const p = new URLSearchParams(location.hash.slice(1));
   const f = state.filters;
   f.q = p.get('q') || '';
+  if (p.get('tok')){
+    f.tokens = p.get('tok').split('~').map(x => {
+      const parts = x.split(':');
+      const t = {R: 'Region', M: 'Miasto', K: 'Kraj', H: 'Hotel'}[parts.shift()];
+      if (!t) return null;
+      const id = t === 'Hotel' ? parts.shift() : undefined;
+      const v = parts.join(':');
+      return v ? {t, v, n: deacc(v), id} : null;
+    }).filter(Boolean);
+  }
+  if (p.get('geo')){
+    const [la, ln, km] = p.get('geo').split(',').map(Number);
+    if (isFinite(la) && isFinite(ln) && isFinite(km)) f.geo = {lat: la, lng: ln, km: km};
+  }
   if (p.get('st')) f.stars = new Set(p.get('st').split('~'));
   if (p.get('pmin')) f.pMin = +p.get('pmin');
   if (p.get('pmax')) f.pMax = +p.get('pmax');
@@ -1135,7 +1282,8 @@ function loadHash(){
   f.showFinished = p.get('fin') === '1';
   if (p.get('sort')) state.sort = p.get('sort');
   $('#q').value = f.q;
-  $('#qClear').classList.toggle('on', !!f.q);
+  renderTokens();
+  if (f.geo) $('#geoKm').value = f.geo.km;
   $('#sort').value = state.sort;
 }
 
@@ -1154,6 +1302,7 @@ function ingest(text, sourceLabel){
 async function boot(){
   loadHash();
   initMap();
+  if (state.filters.geo) drawGeo();
   await loadGeoCacheFile();
   let text = null, label = null;
   try {
@@ -1167,14 +1316,97 @@ async function boot(){
 }
 
 /* ================= EVENTS ================= */
-// search
+// wyszukiwarka: tokeny + podpowiedzi
+const TYPE_ORDER = {Region: 0, Miasto: 1, Kraj: 2, Hotel: 3};
+const TYPE_KEY = {Region: 'R', Miasto: 'M', Kraj: 'K', Hotel: 'H'};
+let suggList = [], suggSel = 0;
+function hideSugg(){
+  const b = $('#sugg');
+  b.hidden = true; b.innerHTML = '';
+  $('#q').setAttribute('aria-expanded', 'false');
+}
+function paintSel(){ $$('#sugg .it').forEach((el, i) => el.classList.toggle('sel', i === suggSel)); }
+function suggScore(n, qn){
+  if (n.startsWith(qn)) return 3;
+  if (n.split(/[\s-]+/).some(w => w.startsWith(qn))) return 2;
+  if (n.includes(qn)) return 1;
+  for (let cut = 1; cut <= 3 && qn.length - cut >= 4; cut++)
+    if (n.includes(qn.slice(0, qn.length - cut))) return .5;
+  return 0;
+}
+function renderSugg(){
+  const qn = deacc($('#q').value.trim());
+  if (qn.length < 2){ hideSugg(); return; }
+  const chosen = new Set(state.filters.tokens.map(t => t.t + '|' + t.n));
+  suggList = (state.sugg || [])
+    .filter(s => !chosen.has(s.t + '|' + s.n))
+    .map(s => ({s, sc: suggScore(s.n, qn)}))
+    .filter(x => x.sc > 0)
+    .sort((a, b) => b.sc - a.sc || TYPE_ORDER[a.s.t] - TYPE_ORDER[b.s.t] || a.s.v.localeCompare(b.s.v, 'pl'))
+    .slice(0, 8)
+    .map(x => x.s);
+  if (!suggList.length){ hideSugg(); return; }
+  suggSel = 0;
+  const box = $('#sugg');
+  box.innerHTML = suggList.map((s, i) => `<div class="it${i === 0 ? ' sel' : ''}" role="option" data-i="${i}"><span class="ty">${s.t}</span><span>${esc(s.v)}</span></div>`).join('');
+  box.hidden = false;
+  $('#q').setAttribute('aria-expanded', 'true');
+}
+function renderTokens(){
+  $$('#tokWrap .tok').forEach(el => el.remove());
+  const input = $('#q');
+  state.filters.tokens.forEach((t, i) => {
+    const el = document.createElement('span');
+    el.className = 'tok';
+    el.innerHTML = `<small>${t.t}</small>${esc(t.v)}<button type="button" data-ti="${i}" aria-label="Usuń ${esc(t.v)}">&times;</button>`;
+    input.before(el);
+  });
+  $('#qClear').classList.toggle('on', !!input.value || state.filters.tokens.length > 0);
+}
+function addToken(s){
+  if (!s) return;
+  state.filters.tokens.push({t: s.t, v: s.v, n: s.n, id: s.id});
+  $('#q').value = ''; state.filters.q = '';
+  hideSugg(); renderTokens(); applyFilters(); $('#q').focus();
+}
+function removeToken(i){
+  state.filters.tokens.splice(i, 1);
+  renderTokens(); applyFilters();
+}
 $('#q').addEventListener('input', e => {
-  state.filters.q = e.target.value.trim().toLowerCase();
-  $('#qClear').classList.toggle('on', !!e.target.value);
+  state.filters.q = e.target.value.trim();
+  renderTokens();
+  renderSugg();
   applyFilters();
 });
+$('#q').addEventListener('keydown', e => {
+  const open = !$('#sugg').hidden;
+  if (open && e.key === 'ArrowDown'){ e.preventDefault(); suggSel = Math.min(suggSel + 1, suggList.length - 1); paintSel(); }
+  else if (open && e.key === 'ArrowUp'){ e.preventDefault(); suggSel = Math.max(suggSel - 1, 0); paintSel(); }
+  else if (open && e.key === 'Enter'){ e.preventDefault(); addToken(suggList[suggSel]); }
+  else if (open && e.key === 'Escape'){ hideSugg(); }
+  else if (e.key === 'Backspace' && !e.target.value && state.filters.tokens.length){ removeToken(state.filters.tokens.length - 1); }
+});
+$('#q').addEventListener('blur', () => setTimeout(hideSugg, 150));
+$('#sugg').addEventListener('mousedown', e => {
+  const it = e.target.closest('.it');
+  if (it){ e.preventDefault(); addToken(suggList[+it.dataset.i]); }
+});
+$('#tokWrap').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-ti]');
+  if (btn){ removeToken(+btn.dataset.ti); return; }
+  $('#q').focus();
+});
 $('#qClear').addEventListener('click', () => {
-  $('#q').value = ''; state.filters.q = ''; $('#qClear').classList.remove('on'); applyFilters(); $('#q').focus();
+  $('#q').value = ''; state.filters.q = ''; state.filters.tokens = [];
+  hideSugg(); renderTokens(); applyFilters(); $('#q').focus();
+});
+// promień od punktu
+$('#geoPick').addEventListener('click', () => setPicking(!picking));
+$('#geoKm').addEventListener('change', () => {
+  const km = Math.min(1000, Math.max(1, parseFloat($('#geoKm').value) || 150));
+  $('#geoKm').value = km;
+  if (state.filters.geo){ state.filters.geo.km = km; drawGeo(); applyFilters(); }
 });
 // sort
 $('#sort').addEventListener('change', e => { state.sort = e.target.value; applyFilters(); });
@@ -1206,6 +1438,7 @@ $('#filters').addEventListener('click', e => {
     if (k === 'stars') f.stars.clear();
     if (k === 'amenities') f.amenities.clear();
     if (k === 'rating') f.rMin = 0;
+    if (k === 'geo') clearGeo();
     if (k === 'price'){ f.pMin = state.bounds.min; f.pMax = state.bounds.max; $('#pMin').value = f.pMin; $('#pMax').value = f.pMax; updateRangeUI(); }
     buildChipStates();
     applyFilters();
@@ -1225,7 +1458,9 @@ function buildChipStates(){
 }
 function resetAllFilters(){
   const f = state.filters;
-  f.q = ''; $('#q').value = ''; $('#qClear').classList.remove('on');
+  f.q = ''; $('#q').value = '';
+  f.tokens = []; renderTokens(); hideSugg();
+  clearGeo();
   f.stars.clear(); f.amenities.clear();
   f.rMin = 0; f.showFinished = false; $('#showFinished').checked = false;
   f.pMin = state.bounds.min; f.pMax = state.bounds.max;
