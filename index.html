@@ -113,6 +113,15 @@ aside{
 .sugg .it{display:flex;align-items:center;gap:9px;padding:9px 12px;font-size:13px;cursor:pointer}
 .sugg .it:hover,.sugg .it.sel{background:var(--coral-tint)}
 .sugg .ty{font-size:8.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);background:var(--cream);border:1px solid var(--line);border-radius:99px;padding:2px 7px;flex:none;min-width:46px;text-align:center}
+.sugg .lb{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sugg .lb b{color:var(--coral)}
+.sugg .cnt{flex:none;font-size:11px;color:var(--ink-faint)}
+.themes{display:flex;flex-wrap:wrap;gap:6px;padding:0 0 12px;margin-top:-2px}
+.themes .chip{padding:5px 11px;font-size:12px;gap:5px}
+.themes .chip svg{width:12px;height:12px}
+.morebtn{width:100%;padding:11px;margin-top:2px}
+.relaxbtn{display:flex;width:100%;justify-content:space-between;gap:10px;margin-top:8px !important;text-align:left}
+.relaxbtn b{color:var(--coral);flex:none}
 #qClear{
   position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:transparent;
   width:28px;height:28px;border-radius:50%;color:var(--ink-faint);display:none;align-items:center;justify-content:center;
@@ -471,6 +480,7 @@ aside{
           </select>
         </div>
       </div>
+      <div class="themes" id="themeChips" hidden></div>
     </div>
 
     <div id="filters">
@@ -568,6 +578,10 @@ aside{
     <h3>Skąd mapa zna położenie hoteli?</h3>
     <p>Jeśli w danych nie ma współrzędnych, adresy są geokodowane bezpłatnymi usługami OpenStreetMap (szybki Photon, w razie potrzeby dokładniejszy Nominatim). Wyniki trafiają do pamięci przeglądarki oraz do wspólnego pliku <code>geocache.json</code> w repozytorium — dzięki niemu kolejni użytkownicy nie czekają ani sekundy. Po zakończonym geokodowaniu pobierz aktualny cache i dodaj go do repo: <button class="btn-outline" id="btnGeoCache" style="margin-top:6px;padding:6px 12px;font-size:12px">Pobierz geocache.json</button></p>
     <p>Najszybsza opcja: jeśli eksport danych może zawierać kolumny <code>lat</code> i <code>lng</code>, pozycje są natychmiastowe i w 100% dokładne — geokodowanie w ogóle nie startuje.</p>
+
+    <h3>Rejestr zapytań bez wyników</h3>
+    <p>Strona zapisuje lokalnie (w tej przeglądarce) kombinacje wyszukiwań, które nie zwróciły żadnej oferty — gotowa lista braków w portfelu dla zespołu podaży. <span id="zeroCount"></span></p>
+    <p><button class="btn-outline" id="btnZeroCsv" style="padding:6px 12px;font-size:12px">Pobierz rejestr (CSV)</button> <button class="btn-outline" id="btnZeroClear" style="padding:6px 12px;font-size:12px">Wyczyść rejestr</button></p>
 
     <h3>Dobre nawyki</h3>
     <ul>
@@ -701,16 +715,48 @@ function amIcon(name){
   return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' + (hit ? hit[1] : AM_DEFAULT) + '</svg>';
 }
 const starStr = n => '★'.repeat(Math.max(0, Math.round(n)));
+const plOfert = n => n === 1 ? '1 oferta' : ((n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? n + ' oferty' : n + ' ofert');
+// Podświetlenie dopasowanego fragmentu w podpowiedzi (deacc zachowuje długość tekstu)
+function hiLabel(v, n, qn){
+  for (let cut = 0; cut <= 3 && qn.length - cut >= 2; cut++){
+    const f2 = qn.slice(0, qn.length - cut);
+    const i = n.indexOf(f2);
+    if (i >= 0) return esc(v.slice(0, i)) + '<b>' + esc(v.slice(i, i + f2.length)) + '</b>' + esc(v.slice(i + f2.length));
+  }
+  return esc(v);
+}
+
+/* ================= SZYBKIE FILTRY TEMATYCZNE ================= */
+const CITY_BREAK = new Set(['warszawa','krakow','gdansk','wroclaw','poznan','lodz','katowice','szczecin','lublin','torun','bydgoszcz','gdynia','rzeszow','bialystok']);
+const THEMES = [
+  {key: 'morze',     label: 'Morze',            match: o => deacc(o.country) === 'polska' && ['pomorskie','zachodniopomorskie'].includes(deacc(o.region))},
+  {key: 'gory',      label: 'Góry',             match: o => ['malopolskie','slaskie','dolnoslaskie','podkarpackie','swietokrzyskie'].includes(deacc(o.region))},
+  {key: 'mazury',    label: 'Mazury i jeziora', match: o => ['warminsko-mazurskie','podlaskie','lubuskie'].includes(deacc(o.region))},
+  {key: 'city',      label: 'City break',       match: o => CITY_BREAK.has(deacc(o.city))},
+  {key: 'zagranica', label: 'Zagranica',        match: o => !!o.country && deacc(o.country) !== 'polska'}
+];
+const THEME_ICO = {
+  morze: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 12c1.5 1.2 3 1.2 4.5 0s3-1.2 4.5 0 3 1.2 4.5 0 3-1.2 4.5 0"/><path d="M2 17c1.5 1.2 3 1.2 4.5 0s3-1.2 4.5 0 3 1.2 4.5 0 3-1.2 4.5 0"/></svg>',
+  gory: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 20L9 7l4 8 3-5 5 10z"/></svg>',
+  mazury: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"/><path d="M12 4l6 9h-6"/><path d="M4 17h16l-1.8 3H5.8z"/></svg>',
+  city: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="9" width="7" height="12"/><rect x="13" y="4" width="8" height="17"/><path d="M6 12h1M6 15h1M16 8h2M16 12h2M16 16h2"/></svg>',
+  zagranica: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>'
+};
+function paintThemes(){
+  $$('#themeChips .chip').forEach(ch => ch.classList.toggle('on', state.filters.themes.has(ch.dataset.th)));
+}
 
 /* ================= STATE ================= */
 const state = {
   offers: [],
   filtered: [],
   bounds: {min: 0, max: 1000},
-  filters: {q:'', tokens:[], geo:null, stars:new Set(), pMin:null, pMax:null, rMin:0, amenities:new Set(), showFinished:false},
+  filters: {q:'', tokens:[], themes:new Set(), geo:null, stars:new Set(), pMin:null, pMax:null, rMin:0, amenities:new Set(), showFinished:false},
   sort: 'price-asc',
   activeId: null,
-  heatOn: false
+  heatOn: false,
+  listLimit: 60,
+  relaxOps: []
 };
 let map, cluster, markersById = new Map();
 
@@ -767,6 +813,22 @@ function buildFilterUI(){
     ...uniq(state.offers.map(o => o.country)).map(v => ({t: 'Kraj', v, n: deacc(v)})),
     ...state.offers.map(o => ({t: 'Hotel', v: o.name, n: deacc(o.name), id: o.id}))
   ];
+  // szybkie filtry tematyczne (tylko motywy mające jakiekolwiek oferty)
+  const themeAvail = THEMES.filter(t => state.offers.some(o => !o.finished && t.match(o)));
+  const tc = $('#themeChips');
+  tc.hidden = !themeAvail.length;
+  tc.innerHTML = themeAvail.map(t => `<button class="chip" data-th="${t.key}">${THEME_ICO[t.key] || ''}${t.label}</button>`).join('');
+  paintThemes();
+  // liczniki ofert dla podpowiedzi wyszukiwarki
+  const entCounts = new Map();
+  const bump = (t, n2) => { const k = t + '|' + n2; entCounts.set(k, (entCounts.get(k) || 0) + 1); };
+  state.offers.forEach(o => {
+    if (o.finished) return;
+    if (o.region) bump('Region', deacc(o.region));
+    if (o.city) bump('Miasto', deacc(o.city));
+    if (o.country) bump('Kraj', deacc(o.country));
+  });
+  state.entCounts = entCounts;
   // stars
   const stars = [...new Set(state.offers.map(o => o.stars).filter(s => s > 0))].sort((a,b)=>a-b);
   $('#starChips').innerHTML = stars.map(s =>
@@ -808,35 +870,43 @@ function updateRangeUI(){
 }
 
 /* ================= FILTERING + RENDER ================= */
+function offerPasses(o, f){
+  if (!f.showFinished && o.finished) return false;
+  if (f.themes.size){
+    let ok = false;
+    for (const t of THEMES){ if (f.themes.has(t.key) && t.match(o)){ ok = true; break; } }
+    if (!ok) return false;
+  }
+  if (f.tokens.length){
+    const ok = f.tokens.some(tk =>
+      tk.t === 'Hotel' ? o.id === tk.id
+      : tk.t === 'Region' ? deacc(o.region) === tk.n
+      : tk.t === 'Miasto' ? deacc(o.city) === tk.n
+      : deacc(o.country) === tk.n);
+    if (!ok) return false;
+  }
+  if (f.q && !textMatch(o.search, f.q)) return false;
+  if (f.geo){
+    if (o.lat == null || o.lng == null) return false;
+    if (distKm(f.geo.lat, f.geo.lng, o.lat, o.lng) > f.geo.km) return false;
+  }
+  if (f.stars.size && !f.stars.has(String(o.stars))) return false;
+  if (o.price != null && (o.price < f.pMin || o.price > f.pMax)) return false;
+  if (f.rMin > 0 && !(o.rating >= f.rMin)) return false;
+  for (const a of f.amenities) if (!o.amenities.includes(a)) return false;
+  return true;
+}
 function applyFilters(){
   const f = state.filters;
-  state.filtered = state.offers.filter(o => {
-    if (!f.showFinished && o.finished) return false;
-    if (f.tokens.length){
-      const ok = f.tokens.some(tk =>
-        tk.t === 'Hotel' ? o.id === tk.id
-        : tk.t === 'Region' ? deacc(o.region) === tk.n
-        : tk.t === 'Miasto' ? deacc(o.city) === tk.n
-        : deacc(o.country) === tk.n);
-      if (!ok) return false;
-    }
-    if (f.q && !textMatch(o.search, f.q)) return false;
-    if (f.geo){
-      if (o.lat == null || o.lng == null) return false;
-      o._dist = distKm(f.geo.lat, f.geo.lng, o.lat, o.lng);
-      if (o._dist > f.geo.km) return false;
-    }
-    if (f.stars.size && !f.stars.has(String(o.stars))) return false;
-    if (o.price != null && (o.price < f.pMin || o.price > f.pMax)) return false;
-    if (f.rMin > 0 && !(o.rating >= f.rMin)) return false;
-    for (const a of f.amenities) if (!o.amenities.includes(a)) return false;
-    return true;
-  });
+  state.filtered = state.offers.filter(o => offerPasses(o, f));
+  if (f.geo) state.filtered.forEach(o => { o._dist = distKm(f.geo.lat, f.geo.lng, o.lat, o.lng); });
+  state.listLimit = 60;
   sortOffers();
   renderCount();
   renderList();
   renderMarkers();
   renderActiveBadge();
+  logZero();
   syncHash();
 }
 function sortOffers(){
@@ -851,9 +921,52 @@ function sortOffers(){
   }[s];
   if (by) arr.sort(by);
 }
+function buildRelaxations(){
+  const f = state.filters, b = state.bounds, ops = [];
+  const clone = () => ({...f, stars: new Set(f.stars), amenities: new Set(f.amenities), tokens: [...f.tokens], themes: new Set(f.themes), geo: f.geo ? {...f.geo} : null});
+  const add = (label, mut, apply) => {
+    const p = clone(); mut(p);
+    const n = state.offers.filter(o => offerPasses(o, p)).length;
+    if (n > 0) ops.push({label, n, apply});
+  };
+  f.amenities.forEach(a => add(`Usuń udogodnienie „${a}”`,
+    p => p.amenities.delete(a),
+    () => { f.amenities.delete(a); buildChipStates(); }));
+  if (f.rMin > 0) add('Usuń próg oceny gości',
+    p => { p.rMin = 0; },
+    () => { f.rMin = 0; buildChipStates(); });
+  if (f.stars.size) add('Usuń filtr kategorii obiektu',
+    p => p.stars.clear(),
+    () => { f.stars.clear(); buildChipStates(); });
+  if (f.pMin > b.min || f.pMax < b.max) add('Rozszerz przedział cen',
+    p => { p.pMin = b.min; p.pMax = b.max; },
+    () => { f.pMin = b.min; f.pMax = b.max; $('#pMin').value = b.min; $('#pMax').value = b.max; updateRangeUI(); });
+  if (f.geo){
+    const km2 = Math.min(1000, f.geo.km * 2);
+    if (km2 > f.geo.km) add(`Poszerz promień do ${km2} km`,
+      p => { p.geo.km = km2; },
+      () => { f.geo.km = km2; $('#geoKm').value = km2; drawGeo(); });
+    add('Usuń wyszukiwanie w promieniu',
+      p => { p.geo = null; },
+      () => clearGeo());
+  }
+  if (f.themes.size) add('Usuń szybkie filtry tematyczne',
+    p => p.themes.clear(),
+    () => { f.themes.clear(); paintThemes(); });
+  if (f.tokens.length) add('Usuń wybrane lokalizacje z wyszukiwarki',
+    p => { p.tokens = []; },
+    () => { f.tokens = []; renderTokens(); });
+  if (f.q) add(`Wyczyść frazę „${f.q}”`,
+    p => { p.q = ''; },
+    () => { f.q = ''; $('#q').value = ''; renderTokens(); });
+  if (!f.showFinished && state.offers.some(o => o.finished)) add('Pokaż też oferty zakończone',
+    p => { p.showFinished = true; },
+    () => { f.showFinished = true; $('#showFinished').checked = true; });
+  return ops.sort((x, y) => y.n - x.n).slice(0, 3);
+}
 function activeFilterCount(){
   const f = state.filters, b = state.bounds;
-  let n = f.stars.size + f.amenities.size + f.tokens.length;
+  let n = f.stars.size + f.amenities.size + f.tokens.length + f.themes.size;
   if (f.geo) n++;
   if (f.rMin > 0) n++;
   if (f.pMin > b.min || f.pMax < b.max) n++;
@@ -903,14 +1016,19 @@ function actionsHtml(o){
 function renderList(){
   const el = $('#list');
   if (!state.filtered.length){
+    state.relaxOps = buildRelaxations();
     el.innerHTML = `<div class="empty">
       <div class="big">Brak ofert dla tych kryteriów</div>
-      <div>Poluzuj filtry albo wyczyść je wszystkie, aby zobaczyć pełną listę.</div>
+      <div>${state.relaxOps.length ? 'Najszybsze sposoby, aby zobaczyć wyniki:' : 'Poluzuj filtry albo wyczyść je wszystkie.'}</div>
+      ${state.relaxOps.map((op, i) => `<button class="btn-outline relaxbtn" data-ri="${i}"><span>${esc(op.label)}</span> <b>+${op.n}</b></button>`).join('')}
       <button class="btn-outline" id="clearAll">Wyczyść wszystkie filtry</button>
     </div>`;
     return;
   }
-  el.innerHTML = state.filtered.map(o => {
+  const shown = state.filtered.slice(0, state.listLimit || 60);
+  const more = state.filtered.length > shown.length
+    ? `<button class="btn-outline morebtn" id="moreBtn">Pokaż więcej — pozostało ${plOfert(state.filtered.length - shown.length)}</button>` : '';
+  el.innerHTML = shown.map(o => {
     const amsShown = o.amenities.slice(0, 5);
     const rest = o.amenities.length - amsShown.length;
     return `<article class="card${o.finished ? ' finished' : ''}${o.id === state.activeId ? ' active' : ''}" data-id="${esc(o.id)}" id="card-${esc(o.id)}">
@@ -933,7 +1051,7 @@ function renderList(){
       </div>` : ''}
       ${actionsHtml(o)}
     </article>`;
-  }).join('');
+  }).join('') + more;
 }
 
 /* ================= MAP ================= */
@@ -1239,6 +1357,7 @@ function syncHash(){
     if (f.q) p.set('q', f.q);
     if (f.tokens.length) p.set('tok', f.tokens.map(t => (t.t === 'Hotel' ? 'H:' + t.id + ':' : TYPE_KEY[t.t] + ':') + t.v).join('~'));
     if (f.geo) p.set('geo', f.geo.lat.toFixed(4) + ',' + f.geo.lng.toFixed(4) + ',' + f.geo.km);
+    if (f.themes.size) p.set('th', [...f.themes].join('~'));
     if (f.stars.size) p.set('st', [...f.stars].join('~'));
     if (f.pMin > b.min) p.set('pmin', f.pMin);
     if (f.pMax < b.max) p.set('pmax', f.pMax);
@@ -1270,6 +1389,7 @@ function loadHash(){
       return v ? {t, v, n: deacc(v), id} : null;
     }).filter(Boolean);
   }
+  if (p.get('th')) f.themes = new Set(p.get('th').split('~'));
   if (p.get('geo')){
     const [la, ln, km] = p.get('geo').split(',').map(Number);
     if (isFinite(la) && isFinite(ln) && isFinite(km)) f.geo = {lat: la, lng: ln, km: km};
@@ -1348,7 +1468,10 @@ function renderSugg(){
   if (!suggList.length){ hideSugg(); return; }
   suggSel = 0;
   const box = $('#sugg');
-  box.innerHTML = suggList.map((s, i) => `<div class="it${i === 0 ? ' sel' : ''}" role="option" data-i="${i}"><span class="ty">${s.t}</span><span>${esc(s.v)}</span></div>`).join('');
+  box.innerHTML = suggList.map((s, i) => {
+    const c = s.t === 'Hotel' ? null : (state.entCounts && state.entCounts.get(s.t + '|' + s.n));
+    return `<div class="it${i === 0 ? ' sel' : ''}" role="option" data-i="${i}"><span class="ty">${s.t}</span><span class="lb">${hiLabel(s.v, s.n, qn)}</span>${c ? `<span class="cnt">${plOfert(c)}</span>` : ''}</div>`;
+  }).join('');
   box.hidden = false;
   $('#q').setAttribute('aria-expanded', 'true');
 }
@@ -1400,6 +1523,65 @@ $('#tokWrap').addEventListener('click', e => {
 $('#qClear').addEventListener('click', () => {
   $('#q').value = ''; state.filters.q = ''; state.filters.tokens = [];
   hideSugg(); renderTokens(); applyFilters(); $('#q').focus();
+});
+// szybkie filtry tematyczne
+$('#themeChips').addEventListener('click', e => {
+  const ch = e.target.closest('.chip[data-th]');
+  if (!ch) return;
+  const th = state.filters.themes;
+  th.has(ch.dataset.th) ? th.delete(ch.dataset.th) : th.add(ch.dataset.th);
+  paintThemes();
+  applyFilters();
+});
+// rejestr zapytań bez wyników (lokalny, per przeglądarka)
+const ZERO_KEY = 'tl_zero_v1';
+let zeroT = null;
+function logZero(){
+  clearTimeout(zeroT);
+  if (state.filtered.length || !state.offers.length) return;
+  zeroT = setTimeout(() => {
+    if (state.filtered.length) return;
+    const f = state.filters;
+    const sig = JSON.stringify([f.q, f.tokens.map(t => t.v), [...f.themes], [...f.amenities], [...f.stars], f.rMin, f.pMin, f.pMax, f.geo && [f.geo.lat.toFixed(2), f.geo.lng.toFixed(2), f.geo.km]]);
+    try {
+      const log = JSON.parse(localStorage.getItem(ZERO_KEY) || '[]');
+      const today = new Date().toISOString().slice(0, 10);
+      if (log.some(en => en.sig === sig && en.d === today)) return;
+      log.push({d: today, sig,
+        q: f.q,
+        tokeny: f.tokens.map(t => t.t + ': ' + t.v).join(' | '),
+        motywy: [...f.themes].join(', '),
+        udogodnienia: [...f.amenities].join(' | '),
+        kategorie: [...f.stars].join(','),
+        ocenaMin: f.rMin || '',
+        ceny: `${f.pMin}-${f.pMax}`,
+        promien: f.geo ? `${f.geo.lat.toFixed(3)},${f.geo.lng.toFixed(3)} / ${f.geo.km} km` : ''});
+      while (log.length > 500) log.shift();
+      localStorage.setItem(ZERO_KEY, JSON.stringify(log));
+    } catch(e){}
+  }, 1800);
+}
+function zeroLog(){ try { return JSON.parse(localStorage.getItem(ZERO_KEY) || '[]'); } catch(e){ return []; } }
+function updateZeroCount(){
+  const el = $('#zeroCount');
+  if (el) el.textContent = `Zapisane wpisy w tej przeglądarce: ${zeroLog().length}.`;
+}
+$('#btnZeroCsv').addEventListener('click', () => {
+  const log = zeroLog();
+  if (!log.length){ toast('Rejestr jest pusty'); return; }
+  const cols = ['d','q','tokeny','motywy','udogodnienia','kategorie','ocenaMin','ceny','promien'];
+  const head = 'data;fraza;lokalizacje;motywy;udogodnienia;kategorie;ocena_min;ceny;promien';
+  const csv = '\uFEFF' + head + '\n' + log.map(en => cols.map(c => '"' + String(en[c] ?? '').replace(/"/g, '""') + '"').join(';')).join('\n');
+  const blob = new Blob([csv], {type: 'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'zapytania-bez-wynikow.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+});
+$('#btnZeroClear').addEventListener('click', () => {
+  try { localStorage.removeItem(ZERO_KEY); } catch(e){}
+  updateZeroCount(); toast('Rejestr wyczyszczony');
 });
 // promień od punktu
 $('#geoPick').addEventListener('click', () => setPicking(!picking));
@@ -1460,6 +1642,7 @@ function resetAllFilters(){
   const f = state.filters;
   f.q = ''; $('#q').value = '';
   f.tokens = []; renderTokens(); hideSugg();
+  f.themes.clear(); paintThemes();
   clearGeo();
   f.stars.clear(); f.amenities.clear();
   f.rMin = 0; f.showFinished = false; $('#showFinished').checked = false;
@@ -1485,6 +1668,17 @@ $('#showFinished').addEventListener('change', e => { state.filters.showFinished 
 $('#autoFit').addEventListener('change', () => { if ($('#autoFit').checked) renderMarkers(); });
 // list interactions (delegowane)
 $('#list').addEventListener('click', e => {
+  const rx = e.target.closest('.relaxbtn');
+  if (rx){
+    const op = state.relaxOps && state.relaxOps[+rx.dataset.ri];
+    if (op){ op.apply(); applyFilters(); }
+    return;
+  }
+  if (e.target.id === 'moreBtn'){
+    state.listLimit = (state.listLimit || 60) + 120;
+    renderList();
+    return;
+  }
   if (e.target.id === 'clearAll'){ resetAllFilters(); return; }
   const btn = e.target.closest('[data-act]');
   if (btn){
@@ -1537,7 +1731,7 @@ $('#fileInput').addEventListener('change', e => {
   e.target.value = '';
 });
 // help modal
-$('#btnHelp').addEventListener('click', () => $('#helpModal').classList.add('on'));
+$('#btnHelp').addEventListener('click', () => { $('#helpModal').classList.add('on'); updateZeroCount(); });
 $('#btnGeoCache').addEventListener('click', downloadGeoCache);
 $('#helpModal').addEventListener('click', e => {
   if (e.target.id === 'helpModal' || e.target.closest('[data-close]')) $('#helpModal').classList.remove('on');
